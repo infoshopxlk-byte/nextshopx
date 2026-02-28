@@ -37,36 +37,39 @@ export default function RootLayout({
           <CartProvider>
             {/* Global Navigation Bar */}
             <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
-              {/* ... (existing header code) */}
-              <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                {/* Logo */}
-                <div className="flex-shrink-0 flex items-center">
-                  <Link href="/" className="text-2xl font-black tracking-tighter text-blue-600">
-                    ShopX<span className="text-slate-900">.lk</span>
-                  </Link>
-                </div>
-
-                {/* Centered Search Bar */}
-                <div className="hidden flex-1 items-center justify-center px-8 md:flex">
-                  <div className="relative w-full max-w-xl">
-                    <SearchBar />
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div className="flex h-16 items-center justify-between gap-4">
+                  {/* Logo */}
+                  <div className="flex-shrink-0">
+                    <Link href="/" className="text-xl sm:text-2xl font-black tracking-tighter text-blue-600">
+                      ShopX<span className="text-slate-900">.lk</span>
+                    </Link>
                   </div>
-                </div>
 
-                {/* Right Icons: Account & Cart */}
-                <div className="flex items-center space-x-6">
-                  <Link href="/account" className="flex flex-col items-center justify-center text-gray-600 hover:text-blue-600 transition-colors">
-                    <User className="h-6 w-6" />
-                    <span className="mt-1 text-[10px] font-medium uppercase tracking-wider hidden sm:block">Account</span>
-                  </Link>
+                  {/* Desktop Search Bar (Centered) */}
+                  <div className="hidden flex-1 items-center justify-center px-4 md:flex">
+                    <div className="relative w-full max-w-xl">
+                      <SearchBar />
+                    </div>
+                  </div>
 
-                  <CartIcon />
+                  {/* Right Icons: Account & Cart */}
+                  <div className="flex items-center space-x-3 sm:space-x-6">
+                    <Link href="/account" className="flex flex-col items-center justify-center text-gray-600 hover:text-blue-600 transition-colors p-1">
+                      <User className="h-5 w-5 sm:h-6 sm:w-6" />
+                      <span className="mt-1 text-[9px] sm:text-[10px] font-medium uppercase tracking-wider hidden xs:block">Account</span>
+                    </Link>
+
+                    <CartIcon />
+                  </div>
                 </div>
               </div>
 
               {/* Mobile Search Bar (visible only on small screens) */}
-              <div className="border-t p-3 md:hidden">
-                <SearchBar />
+              <div className="border-t p-2 md:hidden bg-gray-50/50">
+                <div className="max-w-7xl mx-auto">
+                  <SearchBar />
+                </div>
               </div>
             </header>
 
