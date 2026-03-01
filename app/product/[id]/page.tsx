@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/woocommerce";
 import CartActionButtons from "@/app/components/CartActionButtons";
+import ProductGrid from "@/app/components/ProductGrid";
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
     let product = null;
@@ -101,8 +102,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                                 </span>
                             )}
                         </div>
-                        <div className="text-sm font-bold text-gray-600 mb-4">
+                        <div className="text-sm font-bold text-gray-600 mb-2">
                             or 3 x Rs. {((parseFloat(product.price || "0") * 1.13) / 3).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with <span className="text-pink-600 font-black italic tracking-tighter bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100">KOKO</span>
+                        </div>
+                        <div className="text-sm font-bold text-gray-600 mb-4">
+                            or 4 x Rs. {((parseFloat(product.price || "0") * 1.13) / 4).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with <span className="text-indigo-700 font-black tracking-tighter bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">PayZy</span>
                         </div>
                         {product.short_description && (
                             <div
@@ -125,7 +129,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                             <div className="flex items-center border border-gray-100 rounded-xl bg-gray-50 p-4">
                                 <span className="text-sm text-gray-500 mr-2">Sold by:</span>
                                 <Link
-                                    href={`/store/${product.wcfm_store_info.store_name.toLowerCase().replace(/\s+/g, '-')}`}
+                                    href={`/sellers/${product.wcfm_store_info.store_name.toLowerCase().replace(/\s+/g, '-')}`}
                                     className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors focus:outline-none"
                                 >
                                     {product.wcfm_store_info.store_name}
@@ -135,7 +139,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                             <div className="flex items-center border border-gray-100 rounded-xl bg-gray-50 p-4">
                                 <span className="text-sm text-gray-500 mr-2">Sold by:</span>
                                 <Link
-                                    href={`/store/${product.store.shop_name.toLowerCase().replace(/\s+/g, '-')}`}
+                                    href={`/sellers/${product.store.shop_name.toLowerCase().replace(/\s+/g, '-')}`}
                                     className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors focus:outline-none"
                                 >
                                     {product.store.shop_name}
@@ -168,59 +172,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             {relatedProducts.length > 0 && (
                 <div className="mt-24 border-t border-gray-100 pt-16 relative z-10">
                     <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Products</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {relatedProducts.map((item: any) => (
-                            <div
-                                key={item.id}
-                                className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all flex flex-col h-full relative"
-                            >
-                                <div className="relative w-full aspect-square bg-white border-b border-gray-50 overflow-hidden">
-                                    {item.images && item.images.length > 0 ? (
-                                        <Image
-                                            src={item.images[0].src}
-                                            alt={item.images[0].alt || item.name}
-                                            fill
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                            className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center justify-center w-full h-full text-gray-400 text-sm">No Image</div>
-                                    )}
-                                </div>
-                                <div className="p-4 flex flex-col flex-1 bg-white">
-                                    <div className="mb-2">
-                                        {item.wcfm_store_info && item.wcfm_store_info.store_name ? (
-                                            <Link href={`/store/${item.wcfm_store_info.store_name.toLowerCase().replace(/\s+/g, '-')}`} className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors pointer-events-auto relative z-20 uppercase tracking-widest">
-                                                {item.wcfm_store_info.store_name}
-                                            </Link>
-                                        ) : item.store && item.store.shop_name ? (
-                                            <Link href={`/store/${item.store.shop_name.toLowerCase().replace(/\s+/g, '-')}`} className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors pointer-events-auto relative z-20 uppercase tracking-widest">
-                                                {item.store.shop_name}
-                                            </Link>
-                                        ) : (
-                                            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                                                ShopX Direct
-                                            </span>
-                                        )}
-                                    </div>
-                                    <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
-                                        <Link href={`/product/${item.slug || item.id}`} className="hover:text-blue-600 before:absolute before:inset-0">
-                                            {item.name}
-                                        </Link>
-                                    </h3>
-                                    <div className="flex flex-col mt-auto pt-2">
-                                        <div className="text-lg font-black text-gray-900">
-                                            Rs. {parseFloat(item.price || "0").toLocaleString('en-LK')}
-                                        </div>
-                                        <div className="text-[11px] font-bold text-gray-500 mt-1 flex items-center gap-1">
-                                            or 3 x Rs. {((parseFloat(item.price || "0") * 1.13) / 3).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with
-                                            <span className="text-pink-600 font-black italic tracking-tighter bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100">KOKO</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <ProductGrid products={relatedProducts} emptyMessage="No related products found." />
                 </div>
             )}
         </div>

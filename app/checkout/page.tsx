@@ -33,8 +33,10 @@ export default function CheckoutPage() {
     const [error, setError] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState("cod");
 
-    // KOKO Markup Calculation (13%)
-    const finalTotal = paymentMethod === "koko" ? baseTotal * 1.13 : baseTotal;
+    // KOKO & Payzy Markup Calculation (13%)
+    const isMarkupPayment = paymentMethod === "koko" || paymentMethod === "payzy";
+    const finalTotal = isMarkupPayment ? baseTotal * 1.13 : baseTotal;
+
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -88,7 +90,29 @@ export default function CheckoutPage() {
         setIsSubmitting(true);
 
         try {
-            // Structure WooCommerce order data payload
+
+            // WhatsApp Intercept for Koko
+            if (paymentMethod === "koko") {
+                const tempOrderId = `KOKO-${Math.floor(1000 + Math.random() * 9000)}`;
+                const itemsList = cart.map(item => `- ${item.name} x${item.quantity}`).join("%0A");
+
+                const whatsappText = `*New Paykoko Order (${tempOrderId})*%0A%0A` +
+                    `*Customer:* ${formData.firstName} ${formData.lastName}%0A` +
+                    `*Phone:* ${formData.phone}%0A` +
+                    `*Address:* ${formData.address}, ${formData.city}%0A%0A` +
+                    `*Items:*%0A${itemsList}%0A%0A` +
+                    `*Total to Pay:* Rs. ${finalTotal.toLocaleString('en-LK')}%0A%0A` +
+                    `I would like to proceed with Paykoko installments.`;
+
+                // Clear the CartContext successfully!
+                clearCart();
+
+                // Redirect to WhatsApp
+                window.location.href = `https://wa.me/94703999100?text=${whatsappText}`;
+                return;
+            }
+
+
             // Structure WooCommerce order data payload
             const load = {
                 payment_method: paymentMethod,
@@ -113,10 +137,15 @@ export default function CheckoutPage() {
                     city: formData.city,
                     country: "LK",
                 },
-                line_items: cart.map((item) => ({
-                    product_id: item.id,
-                    quantity: item.quantity,
-                })),
+                line_items: cart.map((item) => {
+                    const lineTotal = (parseFloat(item.price || "0") * item.quantity).toString();
+                    return {
+                        product_id: item.id,
+                        quantity: item.quantity,
+                        subtotal: lineTotal,
+                        total: lineTotal,
+                    };
+                }),
                 shipping_lines: [
                     {
                         method_id: "flat_rate",
@@ -124,6 +153,13 @@ export default function CheckoutPage() {
                         total: SHIPPING_RATE.toString(),
                     },
                 ],
+                fee_lines: isMarkupPayment ? [
+                    {
+                        name: "Convenience Fee (13%)",
+                        total: (baseTotal * 0.13).toString(),
+                        tax_status: "none" // Prevents issues with WC taxes if not configured
+                    }
+                ] : [],
             };
 
             // Call our internal Next.js API Route handler that securely proxies to WooCommerce
@@ -354,44 +390,56 @@ export default function CheckoutPage() {
                                 </label>
 
                                 {/* Paykoko */}
-                                <label className={`flex items-start gap-4 p-4 bg-white rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'koko' ? 'border-blue-500 shadow-md ring-1 ring-blue-500/10' : 'border-gray-100 hover:border-gray-200'}`}>
-                                    <input
-                                        type="radio"
-                                        name="payment_method"
-                                        value="koko"
-                                        checked={paymentMethod === 'koko'}
-                                        onChange={() => setPaymentMethod('koko')}
-                                        className="mt-1 h-4 w-4 text-pink-600 border-gray-300 focus:ring-pink-500"
-                                    />
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
+                                <label className={`flex flex-col sm:flex-row items-start gap-4 p-4 bg-white rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'koko' ? 'border-blue-500 shadow-md ring-1 ring-blue-500/10' : 'border-gray-100 hover:border-gray-200'}`}>
+                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                        <input
+                                            type="radio"
+                                            name="payment_method"
+                                            value="koko"
+                                            checked={paymentMethod === 'koko'}
+                                            onChange={() => setPaymentMethod('koko')}
+                                            className="h-4 w-4 text-pink-600 border-gray-300 focus:ring-pink-500 mt-0.5"
+                                        />
+                                        <div className="sm:hidden flex-1 font-bold text-gray-900 text-base">Paykoko (Installments)</div>
+                                        <div className="sm:hidden flex items-center gap-1.5 bg-pink-50 px-2 py-1 rounded text-[11px] font-black italic text-pink-600 border border-pink-100">
+                                            KOKO
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 w-full pl-7 sm:pl-0">
+                                        <div className="hidden sm:flex items-center justify-between mb-1">
                                             <span className="font-bold text-gray-900 text-base">Paykoko (Installments)</span>
                                             <div className="flex items-center gap-1.5 bg-pink-50 px-2 py-1 rounded text-[11px] font-black italic text-pink-600 border border-pink-100">
                                                 KOKO
                                             </div>
                                         </div>
-                                        <p className="text-sm text-gray-500 leading-relaxed font-medium">Split your payment into 3 interest-free installments. (Total includes 13% convenience fee).</p>
+                                        <p className="text-sm text-gray-500 leading-relaxed font-medium">Order via WhatsApp for manual installment processing.</p>
                                     </div>
                                 </label>
 
                                 {/* Payzy */}
-                                <label className={`flex items-start gap-4 p-4 bg-white rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'payzy' ? 'border-blue-500 shadow-md ring-1 ring-blue-500/10' : 'border-gray-100 hover:border-gray-200'}`}>
-                                    <input
-                                        type="radio"
-                                        name="payment_method"
-                                        value="payzy"
-                                        checked={paymentMethod === 'payzy'}
-                                        onChange={() => setPaymentMethod('payzy')}
-                                        className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                                    />
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="font-bold text-gray-900 text-base">Payzy</span>
+                                <label className={`flex flex-col sm:flex-row items-start gap-4 p-4 bg-white rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'payzy' ? 'border-blue-500 shadow-md ring-1 ring-blue-500/10' : 'border-gray-100 hover:border-gray-200'}`}>
+                                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                                        <input
+                                            type="radio"
+                                            name="payment_method"
+                                            value="payzy"
+                                            checked={paymentMethod === 'payzy'}
+                                            onChange={() => setPaymentMethod('payzy')}
+                                            className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 mt-0.5"
+                                        />
+                                        <div className="sm:hidden flex-1 font-bold text-gray-900 text-base">Payzy (Installments)</div>
+                                        <div className="sm:hidden flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded text-[11px] font-black tracking-tighter text-indigo-700 border border-indigo-100">
+                                            PayZy
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 w-full pl-7 sm:pl-0">
+                                        <div className="hidden sm:flex items-center justify-between mb-1">
+                                            <span className="font-bold text-gray-900 text-base">Payzy (Installments)</span>
                                             <div className="flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded text-[11px] font-black tracking-tighter text-indigo-700 border border-indigo-100">
                                                 PayZy
                                             </div>
                                         </div>
-                                        <p className="text-sm text-gray-500 leading-relaxed font-medium">Fast and secure local mobile payments.</p>
+                                        <p className="text-sm text-gray-500 leading-relaxed font-medium">Split your payment into 4 interest-free installments. (Total includes 13% convenience fee).</p>
                                     </div>
                                 </label>
                             </div>
@@ -472,14 +520,31 @@ export default function CheckoutPage() {
                                     </>
                                 ) : (
                                     paymentMethod === "cod" ? "Place Order (COD)" :
-                                        paymentMethod === "genie" ? "Confirm & Pay with Card" :
-                                            `Pay with ${paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}`
+                                        paymentMethod === "koko" ? "Order via WhatsApp" :
+                                            paymentMethod === "genie" ? "Confirm & Pay with Card" :
+                                                `Pay with ${paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}`
                                 )}
                             </button>
 
                             <p className="mt-4 text-center text-xs text-gray-500 font-medium">
                                 By placing this order, you agree to our Terms of Service & Privacy Policy.
                             </p>
+
+                            {/* Support Block */}
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <div className="bg-blue-50 rounded-2xl p-4 flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                                        <AlertCircle className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-900">Need Help?</h4>
+                                        <p className="text-xs text-gray-600 mt-0.5 mb-1">Our support team is available 24/7.</p>
+                                        <a href="tel:0703999100" className="text-sm font-black text-blue-600 hover:text-blue-800 transition-colors">
+                                            070 3999 100
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

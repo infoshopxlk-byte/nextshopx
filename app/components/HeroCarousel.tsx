@@ -32,7 +32,7 @@ export default function HeroCarousel() {
                                     Reach thousands of customers islandwide. Join the fastest growing marketplace today.
                                 </p>
                                 <div className="pt-2 w-full flex flex-col sm:flex-row gap-3">
-                                    <Link href="/become-a-seller" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-center text-sm md:text-base">
+                                    <Link href="/sell" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-center text-sm md:text-base">
                                         Start Selling
                                     </Link>
                                     <Link href="#latest-arrivals" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-center text-sm md:text-base">
@@ -56,7 +56,6 @@ export default function HeroCarousel() {
                     </div>
                 </SwiperSlide>
 
-                {/* Slide 2: Customer Promo */}
                 <SwiperSlide>
                     <div className="w-full h-full bg-gradient-to-r from-gray-100 to-white relative flex items-center">
                         <div className="relative z-20 w-full px-6 md:px-16">
@@ -73,6 +72,32 @@ export default function HeroCarousel() {
                                 <div className="pt-2">
                                     <Link href="#latest-arrivals" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-center text-sm md:text-base">
                                         Explore Arrivals
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </SwiperSlide>
+
+                {/* Slide 3: Payzy Installment Promo */}
+                <SwiperSlide>
+                    <div className="w-full h-full bg-gradient-to-r from-indigo-50 via-white to-purple-50 relative flex items-center">
+                        <div className="relative z-20 w-full px-6 md:px-16 flex items-center justify-between">
+                            <div className="max-w-2xl space-y-4 md:space-y-6">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] sm:text-xs md:text-sm font-black tracking-widest uppercase shadow-sm border border-indigo-200">
+                                    PayZy
+                                    <span className="font-medium normal-case tracking-normal">Now Available</span>
+                                </div>
+                                <h2 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-indigo-950 leading-tight tracking-tight">
+                                    Buy Now. <br />Pay Later.
+                                </h2>
+                                <p className="text-gray-600 text-sm sm:text-base md:text-xl font-medium line-clamp-2 sm:line-clamp-none">
+                                    Split your entire purchase into <strong className="text-indigo-900">4 easy installments</strong>. <br className="hidden md:block" />
+                                    <span className="text-sm">(A 13% convenience fee applies to your total order)</span>
+                                </p>
+                                <div className="pt-2 w-full flex flex-col sm:flex-row gap-3">
+                                    <Link href="#latest-arrivals" className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 text-center text-sm md:text-base">
+                                        Shop Installments
                                     </Link>
                                 </div>
                             </div>

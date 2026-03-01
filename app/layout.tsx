@@ -6,6 +6,8 @@ import { CartProvider } from "@/app/context/CartContext";
 import { Providers } from "@/app/components/Providers";
 import CartIcon from "@/app/components/DynamicCartIcon";
 import SearchBar from "@/app/components/SearchBar";
+import MobileBottomNav from "@/app/components/MobileBottomNav";
+import AiChatbot from "@/app/components/AiChatbot";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,7 +38,7 @@ export default function RootLayout({
         <Providers>
           <CartProvider>
             {/* Global Navigation Bar */}
-            <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
+            <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white shadow-sm">
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between gap-4">
                   {/* Logo */}
@@ -66,7 +68,7 @@ export default function RootLayout({
               </div>
 
               {/* Mobile Search Bar (visible only on small screens) */}
-              <div className="border-t p-2 md:hidden bg-gray-50/50">
+              <div className="border-t border-gray-100 p-2 md:hidden bg-gray-50/50">
                 <div className="max-w-7xl mx-auto">
                   <SearchBar />
                 </div>
@@ -81,12 +83,12 @@ export default function RootLayout({
             </main>
 
             {/* Global Footer */}
-            <footer className="w-full border-t bg-gray-50 py-16 mt-auto">
+            <footer className="w-full border-t bg-gray-50 py-16 mt-auto pb-24 md:pb-16">
               {/* ... (existing footer code) */}
               <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
                   {/* Brand Column */}
-                  <div className="flex flex-col items-start">
+                  <div className="flex flex-col items-start lg:col-span-1">
                     <span className="text-2xl font-black tracking-tighter text-blue-600 mb-4">
                       ShopX<span className="text-gray-900">.lk</span>
                     </span>
@@ -94,7 +96,7 @@ export default function RootLayout({
                       Sri Lanka's trusted multi-vendor marketplace. Discover amazing products from local sellers all over the island.
                     </p>
                     <p className="text-sm font-bold text-gray-900">
-                      Hotline: 011 234 5678
+                      Hotline: <a href="tel:0703999100" className="hover:text-blue-600 transition-colors">070 3999 100</a>
                     </p>
                   </div>
 
@@ -130,6 +132,16 @@ export default function RootLayout({
                       <li><Link href="/advertising" className="hover:text-blue-600 transition-colors">Advertise Your Products</Link></li>
                     </ul>
                   </div>
+
+                  {/* Our Reviews */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Our Reviews</h3>
+                    <ul className="space-y-3 text-sm text-gray-500">
+                      <li><a href="https://www.trustpilot.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">Trustpilot</a></li>
+                      <li><a href="https://www.google.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">Google Review</a></li>
+                      <li><a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">Facebook Review</a></li>
+                    </ul>
+                  </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -143,6 +155,9 @@ export default function RootLayout({
                 </div>
               </div>
             </footer>
+            {/* Native App-like Navigation components wrapper */}
+            <MobileBottomNav />
+            <AiChatbot />
           </CartProvider>
         </Providers>
       </body>
