@@ -67,23 +67,33 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
 
         // 3. FETCH PRODUCTS: Use the discovered vendorId
         if (vendorId) {
+
+            // Helper function to strictly filter products by Vendor ID natively in Next.js
+            // This prevents the WooCommerce REST API from bleeding global products if it ignores the parameter.
+            const filterProducts = (rawProducts: any[], targetVendorId: any) => {
+                return rawProducts.filter((product: any) => {
+                    const productVendorId = product.wcfm_store_info?.vendor_id || product.store?.vendor_id || product.author;
+                    return String(productVendorId) === String(targetVendorId);
+                });
+            };
+
             // Try 'vendor' parameter (WCFM style)
             const response = await api.get("products", {
                 vendor: vendorId,
-                per_page: 40,
+                per_page: 100, // Fetch more to ensure we have a good pool to filter from
                 status: "publish"
             });
 
-            products = response.data;
+            products = filterProducts(response.data, vendorId);
 
             // Fallback: Try 'author' parameter (standard WooCommerce vendor mapping)
             if (products.length === 0) {
                 const authorResponse = await api.get("products", {
                     author: vendorId,
-                    per_page: 40,
+                    per_page: 100,
                     status: "publish"
                 });
-                products = authorResponse.data;
+                products = filterProducts(authorResponse.data, vendorId);
             }
 
             console.log(`[DEBUG] Final catalog size for ${vendorId}: ${products.length}`);
@@ -138,7 +148,7 @@ export default async function SellerProfilePage({ params }: { params: Promise<{ 
                             <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-gray-900 tracking-tighter mb-4">
                                 {storeName}
                             </h1>
-                            <div 
+                            <div
                                 className="text-gray-600 text-sm sm:text-lg max-w-2xl font-medium leading-relaxed mb-8 prose prose-sm sm:prose-base prose-gray"
                                 dangerouslySetInnerHTML={{ __html: sellerInfo?.store_description || "Premium ShopX verified vendor. Explore our curated selection of high-quality products available with easy KOKO installments." }}
                             />

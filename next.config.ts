@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'vendor.shopx.lk',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
         hostname: 'secure.gravatar.com',
       },
       {

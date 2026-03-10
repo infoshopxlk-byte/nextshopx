@@ -5,13 +5,15 @@ export async function POST(request: Request) {
     try {
         const orderData = await request.json();
 
-        // Conditional status based on payment method
-        // COD orders go to "processing" immediately, others start as "pending"
-        orderData.status = orderData.payment_method === "cod" ? "processing" : "pending";
+        console.log(`[DEBUG] Attempting to create order to: ${process.env.NEXT_PUBLIC_WORDPRESS_URL}/wp-json/wc/v3/orders`);
 
-        // Securely proxy the payload back to WooCommerce API using the initialized instance 
-        // which has access to the isolated Server Environment Variables.
-        const response = await api.post("orders", orderData);
+        // Securely proxy the payload back to standard WooCommerce API but explicitly flag  
+        // WCFM interception headers so the backend Marketplace module validates the payload.
+        const response = await api.post("orders", orderData, {
+            headers: {
+                "WCFM-SYNC": "true"
+            }
+        });
 
         return NextResponse.json(
             {

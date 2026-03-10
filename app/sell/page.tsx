@@ -1,8 +1,64 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Store, TrendingUp, Users, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Store, TrendingUp, Users, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function VendorRegistration() {
+    const [formData, setFormData] = useState({
+        businessName: '',
+        contactName: '',
+        email: '',
+        phone: '',
+        businessType: 'Retail',
+        category: 'Electronics',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [status, setStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setStatus({ type: null, message: '' });
+
+        try {
+            const res = await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    type: "vendor",
+                    data: {
+                        businessName: formData.businessName,
+                        contactName: formData.contactName,
+                        email: formData.email,
+                        phone: formData.phone,
+                        businessType: formData.businessType,
+                        category: formData.category
+                    }
+                }),
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                setStatus({ type: 'success', message: "Your application has been received! We'll contact you shortly." });
+                setFormData({
+                    businessName: '',
+                    contactName: '',
+                    email: '',
+                    phone: '',
+                    businessType: 'Retail',
+                    category: 'Electronics',
+                });
+            } else {
+                throw new Error(result.message || "Registration failed.");
+            }
+        } catch (error: any) {
+            setStatus({ type: 'error', message: error.message || "An unexpected error occurred." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
             {/* Hero Section */}
@@ -44,36 +100,84 @@ export default function VendorRegistration() {
                         <h2 className="text-2xl font-bold mb-2">Start Selling Today</h2>
                         <p className="text-gray-500 text-sm mb-6">Create your seller account and launch your store.</p>
 
-                        <form className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">First Name</label>
-                                    <input type="text" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="John" required />
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {status.type === 'success' && (
+                                <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700 font-medium">
+                                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                    {status.message}
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Last Name</label>
-                                    <input type="text" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="Doe" required />
+                            )}
+                            {status.type === 'error' && (
+                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700 font-medium">
+                                    <AlertCircle className="w-5 h-5 shrink-0" />
+                                    {status.message}
                                 </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Contact Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.contactName}
+                                    onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="John Doe"
+                                />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Store Name</label>
-                                <input type="text" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="e.g. Dream Electronics" required />
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.businessName}
+                                    onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="e.g. Dream Electronics"
+                                />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>
-                                <input type="email" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="john@example.com" required />
+                                <input
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="john@example.com"
+                                />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
-                                <input type="tel" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="07XXXXXXXX" required />
+                                <input
+                                    type="tel"
+                                    required
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="07XXXXXXXX"
+                                />
                             </div>
 
-                            <button type="button" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-[0.98] mt-4 flex justify-center items-center gap-2 group">
-                                Register as Vendor
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-[0.98] mt-4 flex justify-center items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        Submitting...
+                                    </>
+                                ) : (
+                                    <>
+                                        Register as Vendor
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
                             </button>
 
                             <p className="text-xs text-center text-gray-500 mt-4">

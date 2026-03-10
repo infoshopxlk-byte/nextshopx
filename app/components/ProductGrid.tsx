@@ -1,6 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 interface Product {
     id: number | string;
@@ -20,6 +22,23 @@ interface ProductGridProps {
 }
 
 export default function ProductGrid({ products, emptyMessage = "No products found." }: ProductGridProps) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // Exact structural match for first render to guarantee hydration consistency
+    if (!isMounted) {
+        return (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8 lg:gap-10 opacity-0 transition-opacity duration-300">
+                {products.map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl md:rounded-2xl border border-gray-100 h-[300px]"></div>
+                ))}
+            </div>
+        );
+    }
+
     if (products.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-2xl border border-gray-100">

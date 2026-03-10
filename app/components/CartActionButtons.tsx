@@ -3,22 +3,39 @@
 import { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { useRouter } from "next/navigation";
+import { MessageCircle } from "lucide-react";
 
-export default function CartActionButtons({ product }: { product: any }) {
+export default function CartActionButtons({
+    product,
+    variationId,
+    variationOptions,
+    disabled
+}: {
+    product: any;
+    variationId?: number;
+    variationOptions?: Record<string, string>;
+    disabled?: boolean;
+}) {
     const { addToCart } = useCart();
     const router = useRouter();
     const [isAdded, setIsAdded] = useState(false);
 
     const isOutOfStock = product.stock_status !== "instock";
+    const isDisabled = disabled || isOutOfStock;
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Button clicked: Add to Cart for product ID', product.id);
-        addToCart(product);
+
+        const cartPayload = {
+            ...product,
+            selected_variation_id: variationId,
+            selected_options: variationOptions,
+        };
+
+        addToCart(cartPayload);
         setIsAdded(true);
 
-        // Reset the success state after 2 seconds
         setTimeout(() => {
             setIsAdded(false);
         }, 2000);
@@ -27,31 +44,40 @@ export default function CartActionButtons({ product }: { product: any }) {
     const handleBuyNow = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Button clicked: Buy Now for product ID', product.id);
-        addToCart(product);
+
+        const cartPayload = {
+            ...product,
+            selected_variation_id: variationId,
+            selected_options: variationOptions,
+        };
+
+        addToCart(cartPayload);
         router.push("/cart");
     };
 
     return (
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 w-full relative z-50">
-            <button
-                onClick={handleBuyNow}
-                disabled={isOutOfStock}
-                className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all active:scale-[0.98] disabled:bg-gray-400 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-                {isOutOfStock ? "Out of Stock" : "Buy Now"}
-            </button>
+        <div className="mb-8 flex flex-col gap-3 w-full relative z-50">
+            {/* Primary Action Row */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <button
+                    onClick={handleBuyNow}
+                    disabled={isDisabled}
+                    className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all active:scale-[0.98] disabled:bg-gray-400 disabled:cursor-not-allowed disabled:active:scale-100"
+                >
+                    {isOutOfStock ? "Out of Stock" : "Buy Now"}
+                </button>
 
-            <button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className={`flex-1 font-bold py-4 border-2 rounded-xl transition-all active:scale-[0.98] disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed disabled:active:scale-100 ${isAdded
-                    ? "bg-green-50 text-green-700 border-green-500"
-                    : "bg-white text-gray-900 border-gray-900 hover:bg-gray-50"
-                    }`}
-            >
-                {isAdded ? "Added to Cart ✓" : "Add to Cart"}
-            </button>
+                <button
+                    onClick={handleAddToCart}
+                    disabled={isDisabled}
+                    className={`flex-1 font-bold py-4 border-2 rounded-xl transition-all active:scale-[0.98] disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed disabled:active:scale-100 ${isAdded
+                        ? "bg-green-50 text-green-700 border-green-500"
+                        : "bg-white text-gray-900 border-gray-900 hover:bg-gray-50"
+                        }`}
+                >
+                    {isAdded ? "Added to Cart ✓" : "Add to Cart"}
+                </button>
+            </div>
 
             {/* Floating Toast Notification overlay */}
             {isAdded && (

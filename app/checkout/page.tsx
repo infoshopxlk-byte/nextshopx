@@ -24,9 +24,23 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { data: session } = useSession();
 
-    // Shipping cost constant
-    const SHIPPING_RATE = 350;
-    const baseTotal = cartTotal + (cart.length > 0 ? SHIPPING_RATE : 0);
+    // Fixed shipping rate per unique vendor
+    const uniqueVendorsCount = new Set(
+        cart.map(item => item.wcfm_store_info?.vendor_id || item.store?.vendor_id || "ShopX Direct")
+    ).size;
+
+    // Weight-Based Shipping Logic
+    const totalWeight = cart.reduce((total, item) => total + (item.weight * item.quantity), 0);
+    const totalBillingKg = Math.max(1, Math.ceil(totalWeight));
+
+    let shippingRate = 0;
+    if (cart.length > 0) {
+        shippingRate = 400 + (totalBillingKg - 1) * 100;
+    }
+
+    const SHIPPING_RATE = shippingRate * uniqueVendorsCount;
+
+    const baseTotal = cartTotal + SHIPPING_RATE;
 
     // Form & Payment State
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,17 +153,41 @@ export default function CheckoutPage() {
                 },
                 line_items: cart.map((item) => {
                     const lineTotal = (parseFloat(item.price || "0") * item.quantity).toString();
+
+                    // Essential for WCFM Backend to intercept the order and split it to the dashboard
+                    const vendorId = item.wcfm_store_info?.vendor_id || item.store?.vendor_id;
+                    const vendorName = item.wcfm_store_info?.store_name || item.store?.shop_name || "ShopX Direct";
+
+                    const metaData = [];
+                    if (vendorId) {
+                        metaData.push({
+                            key: "_vendor_id", // Strict WCFM Requirement
+                            value: Number(vendorId) // Force numeric conversion
+                        });
+                        metaData.push({
+                            key: "_wcfm_store_name",
+                            value: vendorName
+                        });
+                        metaData.push({
+                            key: "_wcfmmp_order_item_processed", // Forces WCFM processing
+                            value: 5 // Force strictly to Integer 5
+                        });
+                    }
+
                     return {
                         product_id: item.id,
+                        variation_id: item.variation_id || undefined,
                         quantity: item.quantity,
                         subtotal: lineTotal,
                         total: lineTotal,
+                        vendor_id: vendorId ? Number(vendorId) : undefined,
+                        meta_data: metaData
                     };
                 }),
                 shipping_lines: [
                     {
                         method_id: "flat_rate",
-                        method_title: "Standard Island-wide Delivery",
+                        method_title: `Standard Delivery (${uniqueVendorsCount} Vendor${uniqueVendorsCount > 1 ? 's' : ''}, ${totalBillingKg}kg total)`,
                         total: SHIPPING_RATE.toString(),
                     },
                 ],
@@ -160,6 +198,16 @@ export default function CheckoutPage() {
                         tax_status: "none" // Prevents issues with WC taxes if not configured
                     }
                 ] : [],
+                meta_data: [
+                    {
+                        key: "has_sub_order", // Triggers WCFM Sub-order split explicitly
+                        value: "true"
+                    },
+                    {
+                        key: "wcfm_is_marketplace_order", // Explicitly inform plugins of MP structure
+                        value: "yes"
+                    }
+                ]
             };
 
             // Call our internal Next.js API Route handler that securely proxies to WooCommerce
@@ -171,24 +219,39 @@ export default function CheckoutPage() {
                 body: JSON.stringify(load),
             });
 
+            console.log("BANK_API_HIT_START");
             const data = await response.json();
+            console.log("BANK_API_RESPONSE:", data);
+
+            // Hybrid Route: Accept Native WP Order Pay Screen
+            if (data.paymentUrl && paymentMethod !== "cod") {
+
+                console.log("HYBRID_ROUTE_TO:", data.paymentUrl);
+
+                // Keep the UI in a loading state and show a transition message
+                setIsSubmitting(true);
+                // We'll use the error state variable to display a positive message since it renders prominently
+                // (Though ideally we should have a dedicated successMessage state, this is fastest)
+                setError("Redirecting to Secure Payment Server...");
+
+                // Give React a few milliseconds to paint the "Redirecting" text before physically navigating away
+                setTimeout(() => {
+                    // Standard reliable redirect jumping completely to WordPress for the gateway plugins
+                    window.location.href = data.paymentUrl;
+                }, 300);
+
+                return; // Absolutely kill NextJS execution engine here
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to create order");
             }
 
-            // Handle Post-Order Logic (Redirection for non-COD)
-            if (paymentMethod !== "cod" && data.paymentUrl) {
-                // Redirect to External Payment Gateway (Genie, Koko, PayZy)
-                window.location.href = data.paymentUrl;
-                return;
-            }
-
-            // For COD or if no redirection URL is provided, go to success page
+            // For COD explicitly where no URL exists natively
             // Clear the CartContext successfully!
             clearCart();
 
-            // Redirect to the success celebration page with WooCommerce Order ID
+            // Redirect to the internal Next.js success celebration page with WooCommerce Order ID (Only if COD)
             router.push(`/success?orderId=${data.orderId}`);
 
         } catch (err: any) {
@@ -478,6 +541,15 @@ export default function CheckoutPage() {
                                             <span className="text-sm font-bold text-gray-900 line-clamp-2 leading-tight">
                                                 {item.name}
                                             </span>
+                                            {item.selected_options && Object.entries(item.selected_options).length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {Object.entries(item.selected_options).map(([k, v]) => (
+                                                        <span key={k} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">
+                                                            {k}: {v}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <span className="mt-1 text-sm font-semibold text-gray-500">
                                                 Rs. {(parseFloat(item.price || "0") * item.quantity).toLocaleString('en-LK')}
                                             </span>
@@ -493,8 +565,15 @@ export default function CheckoutPage() {
                                     <span className="text-gray-900">Rs. {cartTotal.toLocaleString('en-LK')}</span>
                                 </div>
 
-                                <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
-                                    <span>Shipping</span>
+                                <div className="flex justify-between items-center text-gray-500 text-sm font-medium border-b border-gray-100 pb-4">
+                                    <span className="flex flex-col">
+                                        Shipping
+                                        {uniqueVendorsCount > 0 && (
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                                                {uniqueVendorsCount} Vendor{uniqueVendorsCount > 1 ? 's' : ''} (Rs. {shippingRate} each, {totalWeight.toFixed(2)}kg total)
+                                            </span>
+                                        )}
+                                    </span>
                                     <span className="text-gray-900">Rs. {SHIPPING_RATE.toLocaleString('en-LK')}</span>
                                 </div>
 

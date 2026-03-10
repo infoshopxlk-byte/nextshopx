@@ -8,23 +8,44 @@ import { Trash2, Plus, Minus, ArrowRight } from "lucide-react";
 export default function CartPage() {
     const { cart, removeFromCart, addToCart, cartTotal } = useCart();
 
-    // Fixed shipping rate for Sri Lanka as per requirements
-    const SHIPPING_RATE = 350;
-    const finalTotal = cartTotal + (cart.length > 0 ? SHIPPING_RATE : 0);
+    // Fixed shipping rate per unique vendor (Sri Lanka)
+    const uniqueVendorsCount = new Set(
+        cart.map(item => item.wcfm_store_info?.vendor_id || item.store?.vendor_id || "ShopX Direct")
+    ).size;
 
-    // Handle incrementing quantity
-    const handleIncrement = (product: any) => {
-        addToCart(product, 1);
-    };
+    // Weight-Based Shipping Logic
+    const totalWeight = cart.reduce((total, item) => total + (item.weight * item.quantity), 0);
+    const totalBillingKg = Math.max(1, Math.ceil(totalWeight));
+
+    let shippingRate = 0;
+    if (cart.length > 0) {
+        shippingRate = 400 + (totalBillingKg - 1) * 100;
+    }
+
+    const SHIPPING_RATE = shippingRate * uniqueVendorsCount;
+
+    const finalTotal = cartTotal + SHIPPING_RATE;
+
+
 
     // Handle decrementing quantity
     const handleDecrement = (product: any) => {
         // If quantity is 1, decrementing should remove it
         if (product.quantity <= 1) {
-            removeFromCart(product.id);
+            removeFromCart(product.id, product.variation_id);
         } else {
-            addToCart(product, -1);
+            addToCart({
+                ...product,
+                selected_variation_id: product.variation_id
+            }, -1);
         }
+    };
+
+    const handleIncrement = (product: any) => {
+        addToCart({
+            ...product,
+            selected_variation_id: product.variation_id
+        }, 1);
     };
 
     if (cart.length === 0) {
@@ -80,7 +101,16 @@ export default function CartPage() {
                                             <Link href={`/product/${item.id}`} className="text-base font-bold text-gray-900 hover:text-blue-600 line-clamp-2 transition-colors">
                                                 {item.name}
                                             </Link>
-                                            <span className="mt-1 text-sm font-semibold text-gray-500">
+                                            {item.selected_options && Object.entries(item.selected_options).length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                    {Object.entries(item.selected_options).map(([k, v]) => (
+                                                        <span key={k} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-bold border border-blue-100 uppercase tracking-tighter">
+                                                            {k}: {v}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <span className="mt-1.5 text-sm font-semibold text-gray-500">
                                                 Rs. {parseFloat(item.price || "0").toLocaleString('en-LK')}
                                             </span>
                                         </div>
@@ -119,7 +149,7 @@ export default function CartPage() {
                                     {/* Remove Action */}
                                     <div className="md:col-span-1 flex justify-end">
                                         <button
-                                            onClick={() => removeFromCart(item.id)}
+                                            onClick={() => removeFromCart(item.id, item.variation_id)}
                                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                                             aria-label="Remove item"
                                         >
@@ -146,7 +176,14 @@ export default function CartPage() {
                             </div>
 
                             <div className="flex justify-between items-center text-gray-600 pb-4 border-b border-gray-100">
-                                <span className="font-medium">Shipping (Sri Lanka)</span>
+                                <span className="font-medium flex flex-col">
+                                    Shipping (Sri Lanka)
+                                    {uniqueVendorsCount > 0 && (
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                                            {uniqueVendorsCount} Vendor{uniqueVendorsCount > 1 ? 's' : ''} (Rs. {shippingRate} each, {totalWeight.toFixed(2)}kg total)
+                                        </span>
+                                    )}
+                                </span>
                                 <span className="font-bold text-gray-900">Rs. {SHIPPING_RATE.toLocaleString('en-LK')}</span>
                             </div>
 

@@ -35,7 +35,7 @@ export default function HeroCarousel() {
                                     <Link href="/sell" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-center text-sm md:text-base">
                                         Start Selling
                                     </Link>
-                                    <Link href="#latest-arrivals" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-white border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-center text-sm md:text-base">
+                                    <Link href="/shop" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-violet-600 hover:bg-violet-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-600/30 text-white font-bold rounded-3xl shadow-lg transition-all active:scale-95 text-center text-sm md:text-base">
                                         Shop Now
                                     </Link>
                                 </div>
@@ -70,7 +70,7 @@ export default function HeroCarousel() {
                                     100% Genuine, Warranty Covered, and Easy Returns. Find the best tech products.
                                 </p>
                                 <div className="pt-2">
-                                    <Link href="#latest-arrivals" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-center text-sm md:text-base">
+                                    <Link href="/shop" className="inline-block px-6 py-3 md:px-8 md:py-4 bg-gray-900 hover:bg-black hover:-translate-y-1 hover:shadow-xl text-white font-bold rounded-3xl shadow-lg transition-all active:scale-95 text-center text-sm md:text-base">
                                         Explore Arrivals
                                     </Link>
                                 </div>
@@ -96,7 +96,7 @@ export default function HeroCarousel() {
                                     <span className="text-sm">(A 13% convenience fee applies to your total order)</span>
                                 </p>
                                 <div className="pt-2 w-full flex flex-col sm:flex-row gap-3">
-                                    <Link href="#latest-arrivals" className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95 text-center text-sm md:text-base">
+                                    <Link href="/shop" className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/30 text-white font-bold rounded-3xl shadow-lg transition-all active:scale-95 text-center text-sm md:text-base">
                                         Shop Installments
                                     </Link>
                                 </div>

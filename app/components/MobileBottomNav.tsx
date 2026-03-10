@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, ShoppingCart, User } from 'lucide-react';
+import { Home, Search, ShoppingCart, User, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/app/context/CartContext';
 import { useSession } from 'next-auth/react';
 
@@ -24,7 +24,12 @@ export default function MobileBottomNav() {
         },
         {
             name: 'Shop',
-            href: '/category/all', // Could also go to a dedicated shop/search page
+            href: '/shop', 
+            icon: ShoppingBag,
+        },
+        {
+            name: 'Search',
+            href: '/search',
             icon: Search,
         },
         {
@@ -35,7 +40,7 @@ export default function MobileBottomNav() {
         },
         {
             name: 'Account',
-            href: status === 'authenticated' ? '/account' : '/login',
+            href: '/account',
             icon: User,
         },
     ];
@@ -53,7 +58,7 @@ export default function MobileBottomNav() {
                             href={item.href}
                             className="relative flex flex-col items-center justify-center w-full h-full space-y-1 group"
                         >
-                            <div className={`relative p-1.5 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-50 text-blue-600 scale-110' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+                            <div className={`relative p-1.5 rounded-xl transition-all duration-300 ${isActive ? 'bg-violet-50 text-violet-600 scale-110' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
                                 <Icon className={`w-6 h-6 stroke-[2px] transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-110'}`} />
 
                                 {/* Red Badge Custom for Cart */}
@@ -63,7 +68,7 @@ export default function MobileBottomNav() {
                                     </span>
                                 )}
                             </div>
-                            <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
+                            <span className={`text-[10px] font-bold tracking-wide transition-colors duration-300 ${isActive ? 'text-violet-600' : 'text-gray-500'}`}>
                                 {item.name}
                             </span>
                         </Link>

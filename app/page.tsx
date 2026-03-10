@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/woocommerce";
-import { Monitor, Keyboard, Mouse, Headphones, Laptop, Smartphone, Shirt, Utensils, Gamepad2, Armchair, Coffee, Gem, Sparkles, Baby, Tag, Truck, ShieldCheck, HeadphonesIcon } from "lucide-react";
+import { Monitor, Keyboard, Mouse, Headphones, Laptop, Smartphone, Shirt, Utensils, Gamepad2, Armchair, Coffee, Gem, Sparkles, Baby, Tag, Truck, ShieldCheck, HeadphonesIcon, Wrench } from "lucide-react";
 import HeroCarousel from "@/app/components/HeroCarousel";
 import ProductGrid from "@/app/components/ProductGrid";
 
@@ -35,7 +35,7 @@ export default async function Home() {
 
           <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-2 gap-y-6 sm:gap-6 lg:gap-8 justify-center">
             {[
-              { name: "Accessories", icon: Laptop, colorFrom: "from-blue-100", textColor: "text-blue-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.3)]", href: "/category/accessories" },
+              { name: "Computer Accessories", icon: Laptop, colorFrom: "from-blue-100", textColor: "text-blue-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(37,99,235,0.3)]", href: "/category/accessories" },
               { name: "Cell Phones", icon: Smartphone, colorFrom: "from-sky-100", textColor: "text-sky-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(14,165,233,0.3)]", href: "/category/cell-phones" },
               { name: "Fashion", icon: Shirt, colorFrom: "from-pink-100", textColor: "text-pink-600", hoverShadow: "group-hover:shadow-[0_15px_30_30px_-10px_rgba(236,72,153,0.3)]", href: "/category/fashion" },
               { name: "Kitchen", icon: Utensils, colorFrom: "from-orange-100", textColor: "text-orange-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(249,115,22,0.3)]", href: "/category/kitchen" },
@@ -45,6 +45,7 @@ export default async function Home() {
               { name: "Jewelry", icon: Gem, colorFrom: "from-purple-100", textColor: "text-purple-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(168,85,247,0.3)]", href: "/category/jewelry" },
               { name: "Beauty", icon: Sparkles, colorFrom: "from-rose-100", textColor: "text-rose-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(244,63,94,0.3)]", href: "/category/beauty" },
               { name: "Baby Care", icon: Baby, colorFrom: "from-cyan-100", textColor: "text-cyan-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(6,182,212,0.3)]", href: "/category/baby-care" },
+              { name: "Hardware Tools", icon: Wrench, colorFrom: "from-slate-200", textColor: "text-slate-700", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(71,85,105,0.3)]", href: "/category/hardware-tools" },
               { name: "Sale!", icon: Tag, colorFrom: "from-red-200", textColor: "text-red-600", hoverShadow: "group-hover:shadow-[0_15px_30px_-10px_rgba(220,38,38,0.5)]", href: "/category/sale", isSale: true },
             ].map((cat, idx) => (
               <Link key={idx} href={cat.href} className="group flex flex-col items-center">
