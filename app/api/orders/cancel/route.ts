@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { order_id, email, reason } = body;
+        const { order_id, reason } = body;
+
+        const session = await getServerSession(authOptions);
+        const email = session?.user?.email;
 
         if (!order_id || !email) {
             return NextResponse.json(
-                { success: false, message: "Order ID and email are required" },
+                { success: false, message: "Order ID and active session email are required" },
                 { status: 400 }
             );
         }

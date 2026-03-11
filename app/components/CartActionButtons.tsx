@@ -9,12 +9,14 @@ export default function CartActionButtons({
     product,
     variationId,
     variationOptions,
-    disabled
+    disabled,
+    displayPrice // Added dynamically from the ProductSelector state
 }: {
     product: any;
     variationId?: number;
     variationOptions?: Record<string, string>;
     disabled?: boolean;
+    displayPrice?: string | number;
 }) {
     const { addToCart } = useCart();
     const router = useRouter();
@@ -29,6 +31,7 @@ export default function CartActionButtons({
 
         const cartPayload = {
             ...product,
+            price: displayPrice || product.price, // STRICT OVERRIDE: Bind the variant price directly to the cart
             selected_variation_id: variationId,
             selected_options: variationOptions,
         };
@@ -47,6 +50,7 @@ export default function CartActionButtons({
 
         const cartPayload = {
             ...product,
+            price: displayPrice || product.price, // STRICT OVERRIDE: Bind the variant price directly to the cart
             selected_variation_id: variationId,
             selected_options: variationOptions,
         };

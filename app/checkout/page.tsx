@@ -223,20 +223,22 @@ export default function CheckoutPage() {
             const data = await response.json();
             console.log("BANK_API_RESPONSE:", data);
 
-            // Hybrid Route: Accept Native WP Order Pay Screen
+            // Direct Gateway Route (Bypassing WordPress Order Pay)
             if (data.paymentUrl && paymentMethod !== "cod") {
 
-                console.log("HYBRID_ROUTE_TO:", data.paymentUrl);
+                console.log("REDIRECT_TO_PAYMENT_GATEWAY:", data.paymentUrl);
 
                 // Keep the UI in a loading state and show a transition message
                 setIsSubmitting(true);
                 // We'll use the error state variable to display a positive message since it renders prominently
-                // (Though ideally we should have a dedicated successMessage state, this is fastest)
-                setError("Redirecting to Secure Payment Server...");
+                setError("Redirecting to Secure Payment Gateway...");
+
+                // Clear the CartContext successfully!
+                clearCart();
 
                 // Give React a few milliseconds to paint the "Redirecting" text before physically navigating away
                 setTimeout(() => {
-                    // Standard reliable redirect jumping completely to WordPress for the gateway plugins
+                    // Redirect straight to Genie / Payzy
                     window.location.href = data.paymentUrl;
                 }, 300);
 
@@ -271,6 +273,24 @@ export default function CheckoutPage() {
                 <Link href="/cart" className="rounded-full bg-blue-600 px-8 py-3 font-bold text-white shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all active:scale-95">
                     Return to Cart
                 </Link>
+            </div>
+        );
+    }
+
+    // Force Authentication Check for Checkout
+    if (!session?.user) {
+        return (
+            <div className="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center space-y-6">
+                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-2">
+                    <Lock className="h-10 w-10" />
+                </div>
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Login Required</h1>
+                <p className="text-gray-500 max-w-md">You must be logged in to securely place an order and track your shipment.</p>
+                <div className="flex gap-4 pt-4">
+                    <Link href="/account" className="rounded-xl bg-blue-600 px-8 py-3.5 font-bold text-white shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all active:scale-[0.98]">
+                        Sign In or Register
+                    </Link>
+                </div>
             </div>
         );
     }

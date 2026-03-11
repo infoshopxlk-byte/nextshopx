@@ -278,6 +278,7 @@ export default function ProductSelector({ product }: ProductContextProps) {
                     variationId={selectedVariation?.variation_id}
                     variationOptions={selectedOptions}
                     disabled={isVariable && !selectedVariation}
+                    displayPrice={displayPrice}
                 />
             </div>
         </div>

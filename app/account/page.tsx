@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import {
@@ -23,6 +25,7 @@ export default function AccountPage() {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
     const [orders, setOrders] = useState<any[]>([]);
+    const [customerProfile, setCustomerProfile] = useState<any>(null);
     const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
     const [cancelOrder, setCancelOrder] = useState<any | null>(null);
@@ -46,15 +49,21 @@ export default function AccountPage() {
     const fetchOrders = async () => {
         setIsLoadingOrders(true);
         try {
-            // In a real scenario, we'd fetch via an internal API to avoid exposing keys,
-            // but for this dashboard implementation, we'll use the lib for structure.
-            const response = await fetch(`/api/orders?email=${session?.user?.email}`);
+            // Fetch Orders
+            const response = await fetch(`/api/orders?email=${session?.user?.email}`, { cache: 'no-store' });
             const data = await response.json();
             if (data.success) {
                 setOrders(data.orders);
             }
+
+            // Fetch specific customer profile for address details
+            const customerRes = await fetch(`/api/customer?email=${session?.user?.email}`, { cache: 'no-store' });
+            const customerData = await customerRes.json();
+            if (customerData.success) {
+                setCustomerProfile(customerData.customer);
+            }
         } catch (err) {
-            console.error("Failed to fetch orders:", err);
+            console.error("Failed to fetch dashboard data:", err);
         } finally {
             setIsLoadingOrders(false);
         }
@@ -227,6 +236,16 @@ export default function AccountPage() {
                                     placeholder="••••••••"
                                     className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none font-medium"
                                 />
+                                <div className="flex justify-end mt-2">
+                                    <a
+                                        href={`${process.env.NEXT_PUBLIC_WORDPRESS_URL}/my-account/lost-password/`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all"
+                                    >
+                                        Forgot Password?
+                                    </a>
+                                </div>
                             </div>
 
                             <button
@@ -547,7 +566,7 @@ export default function AccountPage() {
                         <div className="space-y-6 animate-in fade-in duration-500">
                             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Saved Shipping Address</h2>
 
-                            {orders.length > 0 ? (
+                            {(customerProfile?.shipping?.address_1 || customerProfile?.shipping?.city) ? (
                                 <div className="p-8 rounded-3xl border border-gray-100 bg-white shadow-sm">
                                     <div className="flex items-start gap-6">
                                         <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
@@ -555,16 +574,16 @@ export default function AccountPage() {
                                         </div>
                                         <div className="space-y-4 flex-1">
                                             <div>
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Last Used Address</div>
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Primary Address</div>
                                                 <h3 className="font-bold text-gray-900 text-lg">
-                                                    {orders[0].shipping.first_name} {orders[0].shipping.last_name}
+                                                    {customerProfile.shipping.first_name || customerProfile.first_name} {customerProfile.shipping.last_name || customerProfile.last_name}
                                                 </h3>
                                             </div>
 
                                             <div className="text-gray-600 leading-relaxed font-medium">
-                                                {orders[0].shipping.address_1}<br />
-                                                {orders[0].shipping.address_2 && <>{orders[0].shipping.address_2}<br /></>}
-                                                {orders[0].shipping.city}, {orders[0].shipping.state} {orders[0].shipping.postcode}<br />
+                                                {customerProfile.shipping.address_1}<br />
+                                                {customerProfile.shipping.address_2 && <>{customerProfile.shipping.address_2}<br /></>}
+                                                {customerProfile.shipping.city}, {customerProfile.shipping.state} {customerProfile.shipping.postcode}<br />
                                                 Sri Lanka
                                             </div>
 
@@ -581,7 +600,7 @@ export default function AccountPage() {
                                         <MapPin className="h-8 w-8" />
                                     </div>
                                     <p className="font-bold text-gray-900 text-lg">No address saved yet</p>
-                                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Place your first order to automatically save your shipping details here for future use.</p>
+                                    <p className="text-sm text-gray-500 mt-2 max-w-sm">Edit your profile to add a shipping address, or place your first order to implicitly save it.</p>
                                 </div>
                             )}
                         </div>

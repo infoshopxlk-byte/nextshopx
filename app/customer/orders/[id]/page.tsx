@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
@@ -40,7 +42,7 @@ export default function OrderDetailPage() {
 
     const fetchOrderDetails = async () => {
         try {
-            const res = await fetch(`/api/orders/${params.id}?email=${session?.user?.email}`);
+            const res = await fetch(`/api/orders/${params.id}?email=${session?.user?.email}`, { cache: 'no-store' });
             const data = await res.json();
             if (data.success) {
                 setOrder(data.order);
