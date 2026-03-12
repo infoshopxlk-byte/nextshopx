@@ -46,7 +46,7 @@ export default function SiteChrome({ children }: { children: ReactNode }) {
                         <div className="flex items-center space-x-3 sm:space-x-4 lg:space-x-6">
                             <Link
                                 href="/shop"
-                                className="hidden sm:inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500 transition shadow-md shadow-violet-500/20"
+                                className="hidden sm:inline-flex items-center justify-center rounded-xl bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] transition shadow-md shadow-blue-500/20"
                             >
                                 Shop
                             </Link>

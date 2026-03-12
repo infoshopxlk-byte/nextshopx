@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'vendor.shopx.lk',
+        hostname: 'sellerhub.shopx.lk',
       },
       {
         protocol: 'http',
