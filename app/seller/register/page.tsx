@@ -16,7 +16,8 @@ import {
     Shield,
     CreditCard,
     FileText,
-    Image as ImageIcon
+    Image as ImageIcon,
+    AlertTriangle
 } from "lucide-react";
 
 interface FormState {
