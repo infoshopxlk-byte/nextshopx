@@ -90,11 +90,11 @@ export default function EarningsPage() {
         setError(null);
 
         const [statsRes, txRes] = await Promise.allSettled([
-            fetch(`${WP}/wp-json/shopx/v1/seller/stats-summary`, {
+            fetch(`/api/proxy?path=/shopx/v1/seller/stats-summary`, {
                 headers: { Authorization: `Bearer ${token}` },
                 cache: "no-store",
             }),
-            fetch(`${WP}/wp-json/shopx/v1/seller/transactions?per_page=50`, {
+            fetch(`/api/proxy?path=/shopx/v1/seller/transactions&per_page=50`, {
                 headers: { Authorization: `Bearer ${token}` },
                 cache: "no-store",
             }),

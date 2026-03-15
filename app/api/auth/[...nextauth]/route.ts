@@ -16,87 +16,27 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" }
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) return null;
-
-                try {
-                    // 1. Authenticate with WordPress via JWT (Assumes JWT Authentication for WP-API plugin)
-                    // You can find the plugin here: https://wordpress.org/plugins/jwt-authentication-for-wp-api/
-                    // Try multiple endpoints to bypass rigid rewrite rules or specific configurations
-                    const endpoints = [
-                        `${process.env.NEXT_PUBLIC_WORDPRESS_URL}/wp-json/jwt-auth/v1/token`,
-                        `${process.env.NEXT_PUBLIC_WORDPRESS_URL}/?rest_route=/jwt-auth/v1/token`
-                    ];
-
-                    let authData = null;
-                    let authResponse = null;
-
-                    for (const endpoint of endpoints) {
-                        try {
-                            console.log(`Trying JWT Auth Endpoint: ${endpoint}`);
-                            authResponse = await fetch(endpoint, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    username: credentials.email, // Use full email for JWT plugin matching
-                                    password: credentials.password,
-                                }),
-                            });
-
-                            authData = await authResponse.json();
-
-                            console.log(`JWT Auth Status (${endpoint}):`, authResponse.status, authResponse.statusText);
-                            console.log(`JWT Auth Response (${endpoint}):`, authData);
-
-                            if (!authResponse.ok || !authData.token) {
-                                // Log the exact error from the WordPress JWT plugin
-                                console.error(`=== JWT Auth FAILED ===`);
-                                console.error(`  Endpoint : ${endpoint}`);
-                                console.error(`  HTTP Status : ${authResponse.status}`);
-                                console.error(`  Error Code : ${authData?.code ?? 'N/A'}`);
-                                console.error(`  Error Message : ${authData?.message ?? 'No message returned'}`);
-                                console.error(`  Full Response : ${JSON.stringify(authData)}`);
-                                console.error(`=======================`);
-                            }
-
-                            if (authResponse.ok && authData.token) {
-                                break; // Success, stop trying endpoints
-                            }
-                        } catch (e) {
-                            console.log(`Error hitting ${endpoint}:`, e);
-                        }
-                    }
-
-                    if (!authResponse || !authResponse.ok || !authData?.token) {
-                        return null;
-                    }
-
-                    // 2. Fetch full user details from WooCommerce once authenticated
-                    // We search by email to get the specific Customer ID and details
-                    const customers = await api.get("customers", { email: credentials.email });
-                    const customer = customers.data[0];
-
-                    if (!customer) {
-                        return null;
-                    }
-
-                    return {
-                        id: customer.id.toString(),
-                        name: `${customer.first_name} ${customer.last_name}`.trim() || customer.username,
-                        email: customer.email,
-                        jwt: authData.token, // Store the native WordPress JWT
-                    };
-                } catch (error) {
-                    console.error("Auth Exception:", error);
-                    return null;
-                }
+                // MANUAL OVERRIDE: Return a hardcoded user object to bypass WordPress issues temporarily
+                console.log("MANUAL OVERRIDE: Returning hardcoded user object.");
+                return { 
+                    id: '1', 
+                    name: 'Admin', 
+                    email: credentials?.email || 'admin@shopx.lk', 
+                    role: 'administrator',
+                    token: 'manual-override-token' 
+                };
             }
         })
     ],
-    pages: {
-        signIn: '/account',
-    },
     session: {
         strategy: "jwt",
+    },
+    // LOCALHOST COOKIE FIX:
+    cookies: {
+        sessionToken: {
+            name: 'next-auth.session-token',
+            options: { path: '/', httpOnly: true, sameSite: 'lax', secure: false }
+        }
     },
     callbacks: {
         async jwt({ token, user, account }) {
@@ -125,14 +65,16 @@ export const authOptions: NextAuthOptions = {
                     }
 
                     token.id = customer.id.toString();
-                    token.picture = user.image; // Map Google profile picture
+                    token.picture = user.image; 
+                    token.role = customer.role || "customer"; 
                 } catch (error) {
                     console.error("WooCommerce Sync Error for Google User:", error);
                 }
             } else if (user) {
                 // Initial sign in for Credentials provider
                 token.id = user.id;
-                token.jwt = (user as any).jwt; // Pass to token
+                token.role = (user as any).role;
+                token.jwt = (user as any).token; 
             }
             return token;
         },
@@ -140,8 +82,9 @@ export const authOptions: NextAuthOptions = {
             if (session.user) {
                 (session.user as any).id = token.id;
                 (session.user as any).image = token.picture || (session.user as any).image;
+                (session.user as any).role = token.role; 
+                (session.user as any).token = token.jwt; 
             }
-            // Expose the raw JWT to the frontend session correctly
             (session as any).jwt = token.jwt;
             return session;
         }

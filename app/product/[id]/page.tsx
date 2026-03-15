@@ -10,7 +10,13 @@ import { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const resolvedParams = await params;
-    const slug = resolvedParams.id;
+    const slug = resolvedParams?.id;
+
+    if (!slug) {
+        return {
+            title: 'Product | ShopX.lk',
+        };
+    }
 
     try {
         const { data } = await api.get('products', { slug: slug });
@@ -71,7 +77,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     try {
         // Await params first (Next.js 15 dynamic routing best practice)
         const resolvedParams = await params;
-        slug = resolvedParams.id;
+        slug = resolvedParams?.id || "";
+
+        if (!slug) throw new Error("Product slug is missing");
 
         // 1. Fetch the main product data by slug
         const { data } = await api.get('products', { slug: slug });
@@ -154,6 +162,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         })
     };
 
+
     return (
         <div className="w-full">
             <script
@@ -176,6 +185,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             <div className="w-full">
                 <ProductSelector product={product} />
             </div>
+
 
             {/* Product Description */}
             {product.description && product.description !== product.short_description && (

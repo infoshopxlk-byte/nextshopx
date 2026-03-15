@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
-const SELLER_PREFIXES = ["/seller/dashboard", "/seller/login"];
+const DASHBOARD_PREFIXES = ["/seller/dashboard", "/seller/login", "/admin"];
 
 interface Props {
     renderChrome: (children: ReactNode) => ReactNode;
@@ -17,9 +17,9 @@ interface Props {
  */
 export default function SellerAwareShell({ renderChrome, children }: Props) {
     const pathname = usePathname();
-    const isSeller = SELLER_PREFIXES.some((p) => pathname.startsWith(p));
+    const isDashboard = DASHBOARD_PREFIXES.some((p) => pathname.startsWith(p));
 
-    if (isSeller) {
+    if (isDashboard) {
         return <div className="min-h-screen flex flex-col">{children}</div>;
     }
 

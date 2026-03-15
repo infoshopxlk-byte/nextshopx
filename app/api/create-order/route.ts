@@ -96,15 +96,36 @@ export async function POST(request: Request) {
         // 5. Inject Validated Customer ID into the payload
         orderData.customer_id = customerId;
 
+        // 6. Sanitize line items — preserve meta_data if it contains vendor info
+        if (Array.isArray(orderData.line_items)) {
+            orderData.line_items = orderData.line_items.map((item: any) => ({
+                product_id: item.product_id,
+                ...(item.variation_id ? { variation_id: item.variation_id } : {}),
+                quantity: item.quantity,
+                ...(item.meta_data ? { meta_data: item.meta_data } : {}),
+            }));
+        }
+
+        // 7. Strip WCFM-specific order-level meta keys except for our custom fields
+        const wcfmMetaKeysToRemove = new Set(['has_sub_order', 'wcfm_is_marketplace_order']);
+        if (Array.isArray(orderData.meta_data)) {
+            orderData.meta_data = orderData.meta_data.filter(
+                (entry: any) => !wcfmMetaKeysToRemove.has(entry.key) || entry.key === '_seller_id'
+            );
+            // Remove the key entirely if there's nothing left to avoid sending an empty array
+            if (orderData.meta_data.length === 0) {
+                delete orderData.meta_data;
+            }
+        }
+
+        if (orderData.payment_method === 'cod') {
+            orderData.status = 'processing';
+            console.log(`[DEBUG] COD order detected. Explicitly setting status to 'processing'`);
+        }
+
         console.log(`[DEBUG] Final Order Payload being sent to WooCommerce:`, JSON.stringify(orderData, null, 2));
 
-        // Securely proxy the payload back to standard WooCommerce API but explicitly flag  
-        // WCFM interception headers so the backend Marketplace module validates the payload.
-        const response = await api.post("orders", orderData, {
-            headers: {
-                "WCFM-SYNC": "true"
-            }
-        });
+        const response = await api.post("orders", orderData);
 
         // ==========================================
         // DIRECT PAYMENT GATEWAY INTEGRATION

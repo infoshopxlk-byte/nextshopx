@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
     User,
     Package,
@@ -21,6 +22,7 @@ import Link from "next/link";
 import api from "@/lib/woocommerce";
 
 export default function AccountPage() {
+    const router = useRouter();
     const { data: session, status } = useSession();
     const [activeTab, setActiveTab] = useState("dashboard");
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -42,9 +44,32 @@ export default function AccountPage() {
     // Fetch orders if logged in
     useEffect(() => {
         if (session?.user?.email) {
+            const role = (session.user as any)?.role;
+            const roles = (session.user as any)?.roles || [];
+
+            // Check for Admin role
+            if (role === 'administrator' || roles.includes('administrator')) {
+                router.push("/admin/dashboard");
+                return;
+            }
+
+            // Check for Seller role and redirect
+            if (role === 'seller' || role === 'wcfm_vendor' || roles.includes('seller') || roles.includes('wcfm_vendor')) {
+                router.push("/seller/dashboard");
+                return;
+            }
             fetchOrders();
         }
-    }, [session]);
+    }, [session, router]);
+
+    // Simple redirect if already authenticated on mount
+    useEffect(() => {
+        if (status === 'authenticated' && session?.user) {
+            const role = (session.user as any)?.role;
+            if (role === 'administrator') router.push("/admin/dashboard");
+            else if (role === 'seller' || role === 'wcfm_vendor') router.push("/seller/dashboard");
+        }
+    }, [status, session, router]);
 
     const fetchOrders = async () => {
         setIsLoadingOrders(true);
@@ -287,6 +312,14 @@ export default function AccountPage() {
                                 </svg>
                                 Continue with Google
                             </button>
+                            
+                            <Link 
+                                href="/seller/login"
+                                className="w-full py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-3xl font-bold shadow-lg shadow-violet-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                            >
+                                <Store className="w-5 h-5 text-white" />
+                                Login as Seller
+                            </Link>
                         </form>
                     ) : (
                         <form onSubmit={handleRegister} className="space-y-6">
@@ -384,6 +417,14 @@ export default function AccountPage() {
                                 </svg>
                                 Continue with Google
                             </button>
+                            
+                            <Link 
+                                href="/seller/login"
+                                className="w-full py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-3xl font-bold shadow-lg shadow-violet-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                            >
+                                <Store className="w-5 h-5 text-white" />
+                                Login as Seller
+                            </Link>
                         </form>
                     )}
 

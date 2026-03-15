@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import CartActionButtons from "@/app/components/CartActionButtons";
 import ChatButton from "@/app/components/ChatButton";
+import { Play, X } from "lucide-react";
 
 interface AttributeOption {
     name: string;
@@ -34,6 +35,13 @@ export default function ProductSelector({ product }: ProductContextProps) {
 
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
     const [selectedVariation, setSelectedVariation] = useState<any | null>(null);
+    const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+
+    const getYouTubeID = (url: string) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
 
     // Initial load: Main Product fallback
     const [displayPrice, setDisplayPrice] = useState(product.price);
@@ -114,7 +122,7 @@ export default function ProductSelector({ product }: ProductContextProps) {
         <div className="flex flex-col md:flex-row gap-12 lg:gap-16 w-full">
             {/* Left Column: Product Image (Client-side dynamic) */}
             <div className="flex flex-col space-y-4 w-full md:w-1/2">
-                <div className="relative aspect-[4/5] w-full rounded-3xl bg-gray-50 overflow-hidden border border-gray-100 shadow-sm">
+                <div className="relative aspect-square w-full rounded-3xl bg-white overflow-hidden border border-gray-100 shadow-sm group">
                     {displayImage ? (
                         <Image
                             src={displayImage}
@@ -122,12 +130,25 @@ export default function ProductSelector({ product }: ProductContextProps) {
                             fill
                             priority
                             sizes="(max-width: 768px) 100vw, 50vw"
-                            className="object-cover"
+                            className="object-contain transition-transform duration-300 group-hover:scale-110"
                         />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center text-gray-400">
                             No Image Available
                         </div>
+                    )}
+
+                    {/* Play Button Overlay */}
+                    {product.youtube_link && (
+                        <button
+                            onClick={() => setIsVideoModalOpen(true)}
+                            className="absolute inset-0 flex items-center justify-center bg-black/10 transition-colors hover:bg-black/20 group/play"
+                            aria-label="Play product video"
+                        >
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/30 backdrop-blur-md text-white shadow-2xl transition-transform duration-300 group-hover/play:scale-110 border border-white/40">
+                                <Play size={40} fill="currentColor" className="ml-1" />
+                            </div>
+                        </button>
                     )}
                 </div>
             </div>
@@ -241,7 +262,7 @@ export default function ProductSelector({ product }: ProductContextProps) {
                             <div className="flex items-center">
                                 <span className="text-sm text-gray-500 mr-2">Sold by:</span>
                                 <Link
-                                    href={`/sellers/${product.wcfm_store_info.store_name.toLowerCase().replace(/\s+/g, '-')}`}
+                                    href={`/sellers/${product.vendor_slug || product.wcfm_store_info.store_name.toLowerCase().replace(/\s+/g, '-')}`}
                                     className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors focus:outline-none"
                                 >
                                     {product.wcfm_store_info.store_name}
@@ -254,7 +275,7 @@ export default function ProductSelector({ product }: ProductContextProps) {
                             <div className="flex items-center">
                                 <span className="text-sm text-gray-500 mr-2">Sold by:</span>
                                 <Link
-                                    href={`/sellers/${product.store.shop_name.toLowerCase().replace(/\s+/g, '-')}`}
+                                    href={`/sellers/${product.vendor_slug || product.store.shop_name.toLowerCase().replace(/\s+/g, '-')}`}
                                     className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors focus:outline-none"
                                 >
                                     {product.store.shop_name}
@@ -281,6 +302,26 @@ export default function ProductSelector({ product }: ProductContextProps) {
                     displayPrice={displayPrice}
                 />
             </div>
+
+            {/* Video Player Modal */}
+            {isVideoModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm" onClick={() => setIsVideoModalOpen(false)}>
+                    <div className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setIsVideoModalOpen(false)}
+                            className="absolute top-4 right-4 z-10 bg-white/20 p-2 rounded-full text-white hover:bg-white/40 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                        <iframe
+                            className="w-full h-full"
+                            src={`https://www.youtube.com/embed/${getYouTubeID(product.youtube_link)}?autoplay=1`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

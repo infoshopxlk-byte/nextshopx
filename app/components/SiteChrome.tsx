@@ -10,14 +10,14 @@ import MobileBottomNav from "@/app/components/MobileBottomNav";
 import AiChatbot from "@/app/components/AiChatbot";
 
 // Routes where we suppress the entire site chrome
-const SELLER_PREFIXES = ["/seller/dashboard", "/seller/login"];
+const DASHBOARD_PREFIXES = ["/seller/dashboard", "/seller/login", "/admin"];
 
 export default function SiteChrome({ children }: { children: ReactNode }) {
     const pathname = usePathname();
-    const isSeller = SELLER_PREFIXES.some((p) => pathname.startsWith(p));
+    const isDashboard = DASHBOARD_PREFIXES.some((p) => pathname.startsWith(p));
 
-    // On seller routes: render children only, full-screen
-    if (isSeller) {
+    // On seller/admin routes: render children only, full-screen
+    if (isDashboard) {
         return <div className="min-h-screen flex flex-col">{children}</div>;
     }
 

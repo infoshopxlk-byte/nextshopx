@@ -7,13 +7,12 @@ interface Product {
     id: number;
     name: string;
     status: string;
-    price: string;
-    regular_price: string;
-    sale_price: string;
+    price: number;
+    regular_price: number;
+    sale_price: number | null;
     stock_status: string;
-    stock_quantity: number | null;
-    images: { src: string; alt: string }[];
-    sku: string;
+    categories: { id: number; name: string }[];
+    permalink: string;
     date_created: string;
 }
 
@@ -46,7 +45,7 @@ export default function SellerProductsPage() {
                 return;
             }
             const res = await fetch(
-                `${WP}/wp-json/wc/v3/products?per_page=50&status=any&orderby=date&order=desc`,
+                `/api/proxy?path=/shopx/v1/seller/products&per_page=50`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                     cache: "no-store",
@@ -57,7 +56,8 @@ export default function SellerProductsPage() {
                 throw new Error(`API error ${res.status}: ${txt.substring(0, 120)}`);
             }
             const data = await res.json();
-            setProducts(Array.isArray(data) ? data : []);
+            // ShopX endpoint wraps results in data.products (not a bare array)
+            setProducts(Array.isArray(data.products) ? data.products : []);
         } catch (e: unknown) {
             console.error("Products fetch error:", e);
             setError(e instanceof Error ? e.message : "Failed to load products.");
@@ -150,7 +150,7 @@ export default function SellerProductsPage() {
                         <table className="w-full text-sm" id="products-table">
                             <thead>
                                 <tr className="border-b border-white/5">
-                                    {["", "Product", "SKU", "Price", "Stock", "Status", ""].map((h, i) => (
+                                    {["", "Product", "Categories", "Price", "Stock", "Status", ""].map((h, i) => (
                                         <th key={i} className="px-5 py-3 text-[10px] font-semibold text-white/30 uppercase tracking-widest text-left">
                                             {h}
                                         </th>
@@ -159,49 +159,44 @@ export default function SellerProductsPage() {
                             </thead>
                             <tbody className="divide-y divide-white/[0.04]">
                                 {products.map((p) => {
-                                    const img = p.images?.[0]?.src;
-                                    const price = p.sale_price
-                                        ? `Rs. ${parseFloat(p.sale_price).toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
+                                    const displayPrice = p.sale_price
+                                        ? `Rs. ${p.sale_price.toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
                                         : p.regular_price
-                                            ? `Rs. ${parseFloat(p.regular_price).toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
+                                            ? `Rs. ${p.regular_price.toLocaleString("en-LK", { minimumFractionDigits: 2 })}`
                                             : "—";
                                     const isOnSale = !!p.sale_price;
                                     return (
                                         <tr key={p.id} className="hover:bg-white/[0.02] transition-colors group">
-                                            {/* Thumbnail */}
+                                            {/* Icon placeholder (no image field in ShopX API) */}
                                             <td className="px-5 py-3 w-12">
-                                                {img ? (
-                                                    <img src={img} alt={p.name} className="w-10 h-10 rounded-lg object-cover border border-white/10" />
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
-                                                        <svg className="w-4 h-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01" />
-                                                        </svg>
-                                                    </div>
-                                                )}
+                                                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+                                                    <svg className="w-4 h-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                                    </svg>
+                                                </div>
                                             </td>
                                             {/* Name */}
                                             <td className="px-5 py-3">
                                                 <p className="font-medium text-white line-clamp-1">{p.name}</p>
                                                 <p className="text-xs text-white/30 mt-0.5">#{p.id}</p>
                                             </td>
-                                            {/* SKU */}
-                                            <td className="px-5 py-3 text-white/40 font-mono text-xs">{p.sku || "—"}</td>
+                                            {/* Categories */}
+                                            <td className="px-5 py-3 text-white/40 text-xs">
+                                                {p.categories?.map(c => c.name).join(", ") || "—"}
+                                            </td>
                                             {/* Price */}
                                             <td className="px-5 py-3">
-                                                <span className="font-semibold text-white">{price}</span>
+                                                <span className="font-semibold text-white">{displayPrice}</span>
                                                 {isOnSale && (
                                                     <span className="ml-1.5 text-xs text-white/30 line-through">
-                                                        Rs. {parseFloat(p.regular_price).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                                                        Rs. {p.regular_price.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
                                                     </span>
                                                 )}
                                             </td>
                                             {/* Stock */}
                                             <td className="px-5 py-3">
                                                 <span className={`text-xs font-semibold capitalize ${STOCK_BADGE[p.stock_status] ?? "text-white/40"}`}>
-                                                    {p.stock_status === "instock" ? (
-                                                        p.stock_quantity != null ? `${p.stock_quantity} in stock` : "In stock"
-                                                    ) : p.stock_status === "outofstock" ? "Out of stock" : "Backorder"}
+                                                    {p.stock_status === "instock" ? "In stock" : p.stock_status === "outofstock" ? "Out of stock" : "Backorder"}
                                                 </span>
                                             </td>
                                             {/* Status */}

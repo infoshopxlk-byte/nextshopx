@@ -15,6 +15,7 @@ interface FieldState {
     status: string;
     weight: string;
     brand: string;
+    youtube_link: string;
 }
 
 interface Category {
@@ -51,6 +52,7 @@ const INITIAL: FieldState = {
     status: "publish",
     weight: "",
     brand: "No Brand",
+    youtube_link: "",
 };
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -62,6 +64,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [existingImageId, setExistingImageId] = useState<number | null>(null);
+    const [existingMeta, setExistingMeta] = useState<any[]>([]);
 
     // Variable Product State
     const [attributes, setAttributes] = useState<Attribute[]>([]);
@@ -83,12 +86,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             const sellerId = localStorage.getItem("seller_id");
             try {
                 // Fetch Categories
-                const catRes = await fetch(`${WP}/wp-json/shopx/v1/categories`);
+                const catRes = await fetch(`/api/proxy?path=/shopx/v1/categories`);
                 if (catRes.ok) setCategories(await catRes.json());
 
                 // Check verification
                 if (sellerId) {
-                    const userRes = await fetch(`${WP}/wp-json/wp/v2/users/${sellerId}?context=edit`, {
+                    const userRes = await fetch(`/api/proxy?path=/wp/v2/users/${sellerId}&context=edit`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem("seller_token")}` }
                     });
                     if (userRes.ok) {
@@ -109,45 +112,54 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             setLoading(true);
             try {
                 const token = localStorage.getItem("seller_token");
-                const WP = process.env.NEXT_PUBLIC_WORDPRESS_URL;
-                const res = await fetch(`${WP}/wp-json/shopx/v1/seller/product/get?product_id=${id}&token=${token}`);
-                const json = await res.json();
-                if (!json.success) throw new Error(json.message);
+                const WP    = process.env.NEXT_PUBLIC_WORDPRESS_URL;
 
-                const d = json.data;
-                setProductType(d.product_type === "variable" ? "variable" : "simple");
+                if (!token || !WP) {
+                    setError("Not authenticated.");
+                    return;
+                }
+
+                // Use our internal proxy to bypass CORS
+                const res = await fetch(
+                    `/api/proxy?path=/shopx/v1/seller/products/${id}`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                        cache: "no-store",
+                    }
+                );
+
+                const json = await res.json();
+                if (!res.ok || !json.success) throw new Error(json.message || `HTTP ${res.status}`);
+
+                const d = json.product; // ShopX wraps data inside 'product'
+
+                setProductType("simple"); // ShopX create endpoint only creates simple products for now
+
+                // Map fields — ShopX uses 'title' not 'name'
                 setFields({
-                    name: d.name || "",
-                    price: d.regular_price || "",
-                    sale_price: d.sale_price || "",
-                    description: d.description || "",
-                    short_description: d.short_description || "",
-                    sku: d.sku || "",
-                    stock: d.manage_stock ? d.stock_quantity?.toString() : "",
-                    status: d.status || "publish",
-                    weight: d.weight || "",
-                    brand: d.brand || "No Brand",
+                    name:              d.title        || "",
+                    price:             d.price != null ? String(d.price) : "",
+                    sale_price:        d.sale_price != null ? String(d.sale_price) : "",
+                    description:       d.description  || "",
+                    short_description: "",
+                    sku:               "",
+                    stock:             "",
+                    status:            d.status       || "publish",
+                    weight:            "",
+                    brand:             "No Brand",
+                    youtube_link:       d.youtube_link || "",
                 });
+
+                // Categories
                 setSelectedCategories(d.category_ids || []);
-                if (d.image_url) {
-                    setImagePreview(d.image_url);
-                    setExistingImageId(d.image_id);
+
+                // Featured image — first entry in images array
+                if (d.images && d.images.length > 0) {
+                    setImagePreview(d.images[0].src);
+                    setExistingImageId(d.images[0].id);
                 }
-                if (d.product_type === "variable") {
-                    setAttributes(d.attributes || []);
-                    setVariations(d.variations.map((v: any) => ({
-                        id: `var_${v.id}`,
-                        attributes: v.attributes,
-                        regular_price: v.regular_price,
-                        sale_price: v.sale_price,
-                        sku: v.sku,
-                        stock: v.manage_stock ? v.stock_quantity?.toString() : "",
-                        image_id: v.image_id,
-                        image_url: v.image_url,
-                    })));
-                }
-            } catch (e: any) {
-                setError(e.message);
+            } catch (e: unknown) {
+                setError(e instanceof Error ? e.message : "Failed to load product.");
             } finally {
                 setLoading(false);
             }
@@ -307,19 +319,20 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 }
             }
 
-            // Step 2: form payload
+            // Step 2: form payload — keys must match shopx_bridge_seller_update_product
             const payload: Record<string, any> = {
-                id: parseInt(id),
-                product_type: productType,
-                name: fields.name.trim(),
+                id: parseInt(id),            // required: product to update
+                title: fields.name.trim(),   // ShopX: 'title'
                 description: fields.description.trim(),
-                short_description: fields.short_description.trim(),
-                status: fields.status,
-                weight: fields.weight.toString().trim(),
-                brand: fields.brand.trim(),
                 category_ids: selectedCategories,
-                image_id: finalImageId,
+                youtube_link: fields.youtube_link.trim(),
             };
+
+            if (finalImageId) {
+                payload.image_ids = [finalImageId];
+            }
+
+            payload.meta_data = existingMeta;
 
             // Step 3: upload variation images sequentially using a local copy
             const submissionVars = [...variations];
@@ -347,13 +360,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             }
 
             if (productType === "simple") {
-                payload.regular_price = fields.price.toString().trim();
-                if (fields.sale_price.toString().trim()) payload.sale_price = fields.sale_price.toString().trim();
-                if (fields.sku.trim()) payload.sku = fields.sku.trim();
-                if (fields.stock.toString().trim()) {
-                    payload.manage_stock = true;
-                    payload.stock_quantity = parseInt(fields.stock);
-                }
+                payload.price = parseFloat(fields.price.toString().trim()); // ShopX: 'price'
+                if (fields.sale_price.toString().trim()) payload.sale_price = parseFloat(fields.sale_price.toString());
             } else {
                 // Variable payload
                 payload.attributes = attributes.map(a => ({
@@ -377,7 +385,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 });
             }
 
-            const res = await fetch(`${WP}/wp-json/shopx/v1/seller/product/update`, {
+            const res = await fetch(`/api/proxy?path=/shopx/v1/seller/product/update`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -544,6 +552,20 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                                         className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition"
                                     />
                                 </div>
+                            </div>
+                                
+                            <div>
+                                <label className="block text-xs text-white/50 mb-1.5 flex items-center justify-between">
+                                    YouTube Video URL
+                                    <span className="text-[10px] text-white/30">(Optional)</span>
+                                </label>
+                                <input
+                                    type="url"
+                                    value={fields.youtube_link}
+                                    onChange={(e) => set("youtube_link", e.target.value)}
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition"
+                                />
                             </div>
                         </div>
 

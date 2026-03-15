@@ -14,6 +14,7 @@ interface Product {
     images?: { src: string; alt?: string }[];
     store?: { shop_name?: string };
     wcfm_store_info?: { store_name?: string };
+    vendor_slug?: string;
 }
 
 interface ProductGridProps {
@@ -76,7 +77,7 @@ export default function ProductGrid({ products, emptyMessage = "No products foun
                                 alt={product.images[0].alt || product.name}
                                 fill
                                 sizes="(max-width: 768px) 50vw, 25vw"
-                                className="object-contain p-3 md:p-4 group-hover:scale-105 transition-transform duration-500 ease-out"
+                                className="object-cover transition-transform duration-300 ease-out group-hover:scale-125"
                             />
                         ) : (
                             <div className="flex items-center justify-center w-full h-full text-gray-400 font-medium text-xs">
@@ -92,7 +93,7 @@ export default function ProductGrid({ products, emptyMessage = "No products foun
                             {/* Vendor Name extracted consistently */}
                             {(product.wcfm_store_info?.store_name || product.store?.shop_name) && (
                                 <Link
-                                    href={`/sellers/${(product.wcfm_store_info?.store_name || product.store?.shop_name || "").toLowerCase().replace(/\s+/g, '-')}`}
+                                    href={`/sellers/${product.vendor_slug || (product.wcfm_store_info?.store_name || product.store?.shop_name || "").toLowerCase().replace(/\s+/g, '-')}`}
                                     className="text-[10px] md:text-xs font-bold text-gray-500 hover:text-blue-600 transition-colors relative z-40 truncate block"
                                 >
                                     {product.wcfm_store_info?.store_name || product.store?.shop_name}

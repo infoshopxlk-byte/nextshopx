@@ -264,16 +264,26 @@ export default function SellerOrdersPage() {
         setStoreName(store);
         if (!token) return;
         try {
-            const WP = process.env.NEXT_PUBLIC_WORDPRESS_URL;
-            const res = await fetch(`${WP}/wp-json/shopx/v1/seller/orders?per_page=100`, {
+            const res = await fetch(`/api/proxy?path=/shopx/v1/seller/orders&per_page=100`, {
                 headers: { Authorization: `Bearer ${token}` },
                 cache: "no-store",
             });
             if (res.ok) {
                 const raw = await res.json();
+                console.log("Orders API Response:", raw);
                 // Endpoint returns { success: true, data: [...] }
                 const list = Array.isArray(raw) ? raw : (raw.data ?? []);
-                setOrders(list);
+                
+                // Cleanup: Filter out 'pending' orders older than 24 hours
+                const filteredList = list.filter((order: Order) => {
+                    if (order.status === 'pending') {
+                        const ageInHours = (Date.now() - new Date(order.date_created).getTime()) / (1000 * 60 * 60);
+                        return ageInHours <= 24;
+                    }
+                    return true;
+                });
+                
+                setOrders(filteredList);
             }
         } catch (e) {
             console.error("Orders fetch error:", e);
@@ -289,8 +299,7 @@ export default function SellerOrdersPage() {
         setRtsSubmitting(true);
         try {
             const token = localStorage.getItem("seller_token");
-            const WP = process.env.NEXT_PUBLIC_WORDPRESS_URL;
-            const res = await fetch(`${WP}/wp-json/shopx/v1/seller/order/rts`, {
+            const res = await fetch(`/api/proxy?path=/shopx/v1/seller/order/rts`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -325,8 +334,7 @@ export default function SellerOrdersPage() {
         setNotesLoading(true);
         try {
             const token = localStorage.getItem("seller_token");
-            const WP = process.env.NEXT_PUBLIC_WORDPRESS_URL;
-            const res = await fetch(`${WP}/wp-json/wc/v3/orders/${order.id}/notes`, {
+            const res = await fetch(`/api/proxy?path=/wc/v3/orders/${order.id}/notes`, {
                 headers: { Authorization: `Bearer ${token}` },
                 cache: "no-store",
             });
@@ -348,8 +356,7 @@ export default function SellerOrdersPage() {
         let notes: OrderNote[] = [];
         try {
             const token = localStorage.getItem("seller_token");
-            const WP = process.env.NEXT_PUBLIC_WORDPRESS_URL;
-            const res = await fetch(`${WP}/wp-json/wc/v3/orders/${order.id}/notes`, {
+            const res = await fetch(`/api/proxy?path=/wc/v3/orders/${order.id}/notes`, {
                 headers: { Authorization: `Bearer ${token}` },
                 cache: "no-store",
             });
@@ -451,9 +458,16 @@ export default function SellerOrdersPage() {
                                             </td>
                                             <td className="px-6 py-3.5 text-white/40 whitespace-nowrap">{fmtDate(order.date_created)}</td>
                                             <td className="px-6 py-3.5">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_COLOR[order.status] ?? "bg-white/5 text-white/40 border-white/10"}`}>
-                                                    {order.status}
-                                                </span>
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_COLOR[order.status] ?? "bg-white/5 text-white/40 border-white/10"}`}>
+                                                        {order.status}
+                                                    </span>
+                                                    {order.status === 'pending' && (
+                                                        <span className="text-[10px] font-medium text-amber-500/80">
+                                                            Payment not completed
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-3.5 text-right text-white font-semibold">{fmtLKR(order.total)}</td>
                                             <td className="px-6 py-3.5 text-right relative">

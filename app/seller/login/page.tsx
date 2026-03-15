@@ -40,8 +40,16 @@ export default function SellerLoginPage() {
             localStorage.setItem("seller_token", data.token);
             localStorage.setItem("seller_id", String(data.user_id));
             localStorage.setItem("seller_store", data.store_name);
+            
+            // Handle roles for redirection
+            const roles = data.roles || [];
+            localStorage.setItem("seller_roles", JSON.stringify(roles));
 
-            router.push("/seller/dashboard");
+            if (roles.includes("administrator")) {
+                router.push("/admin/dashboard");
+            } else {
+                router.push("/seller/dashboard");
+            }
         } catch {
             setError("Network error. Please try again.");
         } finally {

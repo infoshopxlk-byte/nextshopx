@@ -15,6 +15,7 @@ interface FieldState {
     status: string;
     weight: string;
     brand: string;
+    youtube_link: string;
 }
 
 interface Category {
@@ -50,6 +51,7 @@ const INITIAL: FieldState = {
     status: "publish",
     weight: "",
     brand: "No Brand",
+    youtube_link: "",
 };
 
 export default function AddProductPage() {
@@ -78,12 +80,12 @@ export default function AddProductPage() {
             const sellerId = localStorage.getItem("seller_id");
             try {
                 // Fetch Categories
-                const catRes = await fetch(`${WP}/wp-json/shopx/v1/categories`);
+                const catRes = await fetch(`/api/proxy?path=/shopx/v1/categories`);
                 if (catRes.ok) setCategories(await catRes.json());
 
                 // Check verification
                 if (sellerId) {
-                    const userRes = await fetch(`${WP}/wp-json/wp/v2/users/${sellerId}?context=edit`, {
+                    const userRes = await fetch(`/api/proxy?path=/wp/v2/users/${sellerId}&context=edit`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem("seller_token")}` }
                     });
                     if (userRes.ok) {
@@ -249,18 +251,15 @@ export default function AddProductPage() {
                 }
             }
 
-            // Step 2: format payload
+            // Step 2: format payload — ShopX API expects: title, price, description, category_ids
             const payload: Record<string, any> = {
-                product_type: productType,
-                name: fields.name.trim(),
+                title: fields.name.trim(),           // ShopX: 'title'
                 description: fields.description.trim(),
-                short_description: fields.short_description.trim(),
-                status: fields.status,
-                vendor_id: sellerId ? parseInt(sellerId) : 0,
-                weight: fields.weight.trim(),
-                brand: fields.brand.trim(),
                 category_ids: selectedCategories,
             };
+
+            // Optional extras
+            payload.youtube_link = fields.youtube_link.trim();
 
             if (imageId) payload.image_id = imageId;
 
@@ -290,13 +289,8 @@ export default function AddProductPage() {
             }
 
             if (productType === "simple") {
-                payload.regular_price = fields.price.trim();
+                payload.price = parseFloat(fields.price.trim()); // ShopX: 'price'
                 if (fields.sale_price.trim()) payload.sale_price = fields.sale_price.trim();
-                if (fields.sku.trim()) payload.sku = fields.sku.trim();
-                if (fields.stock.trim()) {
-                    payload.manage_stock = true;
-                    payload.stock_quantity = parseInt(fields.stock);
-                }
             } else {
                 // Variable payload
                 payload.attributes = attributes.map(a => ({
@@ -320,7 +314,7 @@ export default function AddProductPage() {
                 });
             }
 
-            const res = await fetch(`${WP}/wp-json/shopx/v1/seller/product/create`, {
+            const res = await fetch(`/api/proxy?path=/shopx/v1/seller/products`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -481,6 +475,20 @@ export default function AddProductPage() {
                                         className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition"
                                     />
                                 </div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs text-white/50 mb-1.5 flex items-center justify-between">
+                                    YouTube Video URL
+                                    <span className="text-[10px] text-white/30">(Optional)</span>
+                                </label>
+                                <input
+                                    type="url"
+                                    value={fields.youtube_link}
+                                    onChange={(e) => set("youtube_link", e.target.value)}
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.07] transition"
+                                />
                             </div>
                         </div>
 

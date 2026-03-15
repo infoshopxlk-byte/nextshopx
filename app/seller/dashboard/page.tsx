@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-interface Commission {
-    net_earnings: number;    // from API: sum of commission_amount
-    gross_sales: number;     // from API: sum of item_total
-    pending_balance: number; // from API: non-completed rows
-    platform_fees: number;   // from API: sum of admin_fee
+interface Stats {
+    total_earnings: number;
+    gross_sales: number;
+    balance: number;
+    platform_fees: number;
+    total_orders: number;
 }
 
 interface Order {
@@ -69,15 +70,29 @@ function fmtDate(d: string) {
     return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+import VendorOnboardingStatus from "@/app/components/VendorOnboardingStatus";
+
 function fmtLKR(n: number) {
-    return "Rs. " + n.toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const val = n || 0;
+    return "Rs. " + val.toLocaleString("en-LK", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 }
 
 export default function SellerDashboardPage() {
-    const [commission, setCommission] = useState<Commission | null>(null);
+    const [stats, setStats] = useState<Stats>({
+        total_earnings: 0,
+        total_orders: 0,
+        balance: 0,
+        gross_sales: 0,
+        platform_fees: 0
+    });
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [storeName, setStoreName] = useState("Dashboard");
+    const [vendorStatus, setVendorStatus] = useState<'pending' | 'rejected' | 'active'>('active');
+    const [rejectionReason, setRejectionReason] = useState("");
 
     const fetchData = useCallback(async () => {
         const token = localStorage.getItem("seller_token");
@@ -87,34 +102,82 @@ export default function SellerDashboardPage() {
         if (!token) return;
 
         try {
-            // Fetch from WooCommerce sub-orders and WCFM endpoint via our bridge
             const WP = process.env.NEXT_PUBLIC_WORDPRESS_URL;
 
-            const [ordersRes, commRes] = await Promise.allSettled([
-                fetch(`${WP}/wp-json/shopx/v1/seller/orders?per_page=8`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    cache: "no-store",
-                }),
-                fetch(`${WP}/wp-json/shopx/v1/seller/stats-summary`, {
+            // Fetch User Meta/Status as well
+            const [ordersRes, statsRes, userRes] = await Promise.allSettled([
+                fetch(`/api/proxy?path=/shopx/v1/seller/orders&per_page=100`, {
                     headers: { Authorization: `Bearer ${token}` },
                     cache: "no-store",
                 }),
+                fetch(`/api/proxy?path=/shopx/v1/seller/stats-summary`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: "no-store",
+                }),
+                // We need an endpoint to get the current user's profile/meta
+                fetch(`/api/proxy?path=/wp/v2/users/me&context=edit`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: "no-store",
+                })
             ]);
+
+            if (userRes.status === "fulfilled" && userRes.value.ok) {
+                const userData = await userRes.value.json();
+                const status = userData.meta?.vendor_status || 'active';
+                setVendorStatus(status);
+                setRejectionReason(userData.meta?.rejection_reason || "");
+            }
+
+            let fetchedCommission = null;
+            if (statsRes.status === "fulfilled" && statsRes.value.ok) {
+                const raw = await statsRes.value.json();
+                fetchedCommission = raw.data ?? null;
+            }
 
             if (ordersRes.status === "fulfilled" && ordersRes.value.ok) {
                 const raw = await ordersRes.value.json();
                 // New endpoint returns { success, data: [...] }
                 const list = Array.isArray(raw) ? raw : (raw.data ?? []);
-                setOrders(list.slice(0, 8));
+                
+                const validOrders = list.filter((o: any) => ['completed', 'processing'].includes((o.status || "").toLowerCase()));
+                
+                // Calculate frontend commission
+                const totalSales = validOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || "0"), 0);
+                
+                const platformFees = totalSales * 0.08;
+                const netEarnings = totalSales - platformFees;
+
+                if (fetchedCommission) {
+                    // Map new API keys to stats state
+                    setStats({
+                        total_earnings: fetchedCommission.total_earnings ?? 0,
+                        gross_sales: fetchedCommission.gross_sales ?? fetchedCommission.total_earnings ?? 0,
+                        balance: fetchedCommission.balance ?? 0,
+                        platform_fees: fetchedCommission.platform_fees ?? (totalSales * 0.08),
+                        total_orders: fetchedCommission.total_orders ?? validOrders.length
+                    });
+                } else {
+                    setStats({
+                        gross_sales: totalSales,
+                        total_earnings: netEarnings,
+                        platform_fees: platformFees,
+                        balance: 0,
+                        total_orders: validOrders.length
+                    });
+                }
+
+                // Cleanup: Filter out 'pending' orders older than 24 hours
+                const filteredList = list.filter((order: Order) => {
+                    if (order.status === 'pending') {
+                        const ageInHours = (Date.now() - new Date(order.date_created).getTime()) / (1000 * 60 * 60);
+                        return ageInHours <= 24;
+                    }
+                    return true;
+                });
+                
+                setOrders(filteredList.slice(0, 8));
             }
 
-            if (commRes.status === "fulfilled" && commRes.value.ok) {
-                const raw = await commRes.value.json();
-                setCommission(raw.data ?? null);
-            }
-            // If commission API doesn't exist yet, leave null (shows skeleton)
         } catch (e) {
             console.error("Dashboard fetch error:", e);
         } finally {
@@ -126,10 +189,11 @@ export default function SellerDashboardPage() {
         fetchData();
     }, [fetchData]);
 
-    const c = commission ?? { net_earnings: 0, gross_sales: 0, pending_balance: 0, platform_fees: 0 };
+    const s = stats;
 
     return (
         <div className="space-y-8 text-white">
+            <VendorOnboardingStatus status={vendorStatus} rejectionReason={rejectionReason} />
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
@@ -152,28 +216,28 @@ export default function SellerDashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <StatCard
                     label="Net Earnings"
-                    value={loading ? "—" : fmtLKR(c.net_earnings)}
+                    value={loading ? "—" : fmtLKR(s.total_earnings)}
                     sub="After platform fee"
                     gradient="from-violet-600/20 to-indigo-600/10"
                     icon={<svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>}
                 />
                 <StatCard
                     label="Gross Sales"
-                    value={loading ? "—" : fmtLKR(c.gross_sales)}
+                    value={loading ? "—" : fmtLKR(s.gross_sales)}
                     sub="Before deductions"
                     gradient="from-emerald-600/20 to-teal-600/10"
                     icon={<svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
                 />
                 <StatCard
                     label="Pending Balance"
-                    value={loading ? "—" : fmtLKR(c.pending_balance)}
+                    value={loading ? "—" : fmtLKR(s.balance)}
                     sub="Awaiting withdrawal"
                     gradient="from-amber-600/20 to-orange-600/10"
                     icon={<svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                 />
                 <StatCard
                     label="Platform Fee"
-                    value={loading ? "—" : fmtLKR(c.platform_fees)}
+                    value={loading ? "—" : fmtLKR(s.platform_fees)}
                     sub="8% commission paid"
                     gradient="from-rose-600/20 to-pink-600/10"
                     icon={<svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
@@ -228,11 +292,18 @@ export default function SellerDashboardPage() {
                                         </td>
                                         <td className="px-6 py-3.5 text-white/40">{fmtDate(order.date_created)}</td>
                                         <td className="px-6 py-3.5">
-                                            <span
-                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_COLOR[order.status] ?? "bg-white/5 text-white/40 border-white/10"}`}
-                                            >
-                                                {order.status}
-                                            </span>
+                                            <div className="flex flex-col items-start gap-1">
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_COLOR[order.status] ?? "bg-white/5 text-white/40 border-white/10"}`}
+                                                >
+                                                    {order.status}
+                                                </span>
+                                                {order.status === 'pending' && (
+                                                    <span className="text-[10px] font-medium text-amber-500/80">
+                                                        Payment not completed
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-3.5 text-right text-white font-semibold">
                                             Rs. {parseFloat(order.total).toLocaleString("en-LK", { minimumFractionDigits: 2 })}

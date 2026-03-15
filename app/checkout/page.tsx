@@ -206,6 +206,10 @@ export default function CheckoutPage() {
                     {
                         key: "wcfm_is_marketplace_order", // Explicitly inform plugins of MP structure
                         value: "yes"
+                    },
+                    {
+                        key: "_seller_id",
+                        value: cart[0]?.wcfm_store_info?.vendor_id || cart[0]?.store?.vendor_id || ""
                     }
                 ]
             };
